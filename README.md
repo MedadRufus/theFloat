@@ -12,7 +12,7 @@ The bouy shall be deployed at sea and will commence its journey, driven solely b
 # Early ideas
 The bouy will probably look like Bob Sutton ZL1RS's bouy, which was launched near Australia ([Project Link](https://www.qsl.net/zl1rs/oceanfloater.html)). The key difference is the theFloat will have rechargable batteries, with some current source for recharge(likely solar).
 
-The [Zachtech WSPR-TX LP1 Transmitter](https://www.zachtek.com/1011) looks like a good candidate for a tracker device. It has GPS for timing, radio based around a Silicon Labs Si5351 clock generator, and uses a Arduino ATmega328p microcontroller. The (firmware)[https://github.com/HarrydeBug/1011-WSPR-TX_LP1] is released under the GPL v3 licence.
+The [Zachtech WSPR-TX LP1 Transmitter](https://www.zachtek.com/1011) looks like a good candidate for a tracker device. It has GPS for timing, radio based around a Silicon Labs Si5351 clock generator, and uses a Arduino ATmega328p microcontroller. The [firmware](https://github.com/HarrydeBug/1011-WSPR-TX_LP1) is released under the GPL v3 licence.
 
 
 
