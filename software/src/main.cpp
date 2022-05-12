@@ -976,7 +976,7 @@ uint64_t StrTouint64_t(String InString)
 {
     uint64_t y = 0;
 
-    for (int i = 0; i < InString.length(); i++)
+    for (uint16_t i = 0; i < InString.length(); i++)
     {
         char c = InString.charAt(i);
         if (c < '0' || c > '9')
@@ -2881,9 +2881,9 @@ boolean OutsideGeoFence()
     boolean Outside;
 
     Outside = true;
-    for (int GridLoop = 0; GridLoop < strlen_P(NoTXGrids); GridLoop = GridLoop + 5)
+    for (uint16_t GridLoop = 0; GridLoop < strlen_P(NoTXGrids); GridLoop = GridLoop + 5)
     { // Itterate between Geo-Fenced grids
-        for (int CharLoop = 0; CharLoop < 4; CharLoop++)
+        for (uint16_t CharLoop = 0; CharLoop < 4; CharLoop++)
         {
             TestGrid[CharLoop] = pgm_read_byte_near(NoTXGrids + CharLoop + GridLoop); // Copy a Grid string from program memory to RAM variable.
         }
