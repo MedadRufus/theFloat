@@ -28,7 +28,6 @@
 #define SI_CLK_SRC_PLL_A 0b00000000
 #define SI_CLK_SRC_PLL_B 0b00100000
 
-
 #define WSPR_FREQ23cm 129650150000ULL // 23cm 1296.501,500MHz (Overtone, not implemented)
 #define WSPR_FREQ70cm 43230150000ULL  // 70cm  432.301,500MHz (Overtone, not implemented)
 #define WSPR_FREQ2m 14449500000ULL    // 2m    144.490,000MHz //Not working. No decode in bench test with WSJT-X decoding Software
@@ -70,3 +69,11 @@
 #define GPSPower A1   // Sleep-Wake signal of the GPS on the WSPR-TX Pico
 #define SiPower A3    // Power the Si5351 from this pin on the WSPR-TX Mini
 
+// Product model. WSPR-TX_LP1                             =1011
+// Product model. WSPR-TX Desktop                         =1012
+// Product model. WSPR-TX Mini                            =1017
+// Product model. WSPR-TX_LP1 with Mezzanine LP4 card     =1020
+// Product model. SSG                                     =1024
+// Product model. WSPR-TX Pico                            =1028
+// Product model. WSPR-TX_LP1 with Mezzanine BLP4 card    =1029
+#define Product_Model 1012

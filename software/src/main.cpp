@@ -32,15 +32,6 @@ const uint8_t SoftwareRevision = 12; // 0 to 255
 
 boolean Si5351I2C_found = false;
 
-// Product model. WSPR-TX_LP1                             =1011
-// Product model. WSPR-TX Desktop                         =1012
-// Product model. WSPR-TX Mini                            =1017
-// Product model. WSPR-TX_LP1 with Mezzanine LP4 card     =1020
-// Product model. SSG                                     =1024
-// Product model. WSPR-TX Pico                            =1028
-// Product model. WSPR-TX_LP1 with Mezzanine BLP4 card    =1029
-const uint16_t Product_Model = 1012;
-
 // Data structures
 enum E_Band
 {
