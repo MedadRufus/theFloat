@@ -382,7 +382,6 @@ void DecodeSerialCMD(const char *InputCMD)
                     DriveLPFilters();
                 }
             }
-            exit;
         }
 
         if (InputCMD[1] == 'O')
@@ -581,7 +580,6 @@ void DecodeSerialCMD(const char *InputCMD)
                     }
                 } // Get Power Encoding Option
             }     // Power encoding Option
-            exit;
 
             // Time slot  [OTS]
             if ((InputCMD[2] == 'T') && (InputCMD[3] == 'S'))
@@ -798,7 +796,6 @@ void DecodeSerialCMD(const char *InputCMD)
                 }
             } // Generator Frequency
 
-            exit;
         } // Data
 
         // Factory data
@@ -983,7 +980,6 @@ void DecodeSerialCMD(const char *InputCMD)
                 }
             }
 
-            exit;
         } // Factory
     }
 }
