@@ -19,7 +19,6 @@
 #include <SoftwareSerial.h>
 #include <NMEAGPS.h> //NeoGps by SlashDevin"
 #include <defines.hpp>
-#include <gps.hpp>
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
