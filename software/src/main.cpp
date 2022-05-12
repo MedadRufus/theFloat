@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 /*
   Software for Zachtek WSPR Transmitter products
   For Arduino Pro Mini ATMega 328 8MHz, 3.3V boards or ATMega328P-AU chips
@@ -26,6 +24,14 @@
   //Harry
 */
 
+#include <Arduino.h>
+#include <EEPROM.h>
+#include <SoftwareSerial.h>
+#include <NMEAGPS.h> //NeoGps by SlashDevin"
+
+NMEAGPS gps; // This parses the GPS characters
+gps_fix fix; // This holds on to the latest values
+
 const uint8_t SoftwareVersion = 1;   // 0 to 255. 0=Beta
 const uint8_t SoftwareRevision = 12; // 0 to 255
 
@@ -36,15 +42,7 @@ const uint8_t SoftwareRevision = 12; // 0 to 255
 // Product model. SSG                                     =1024
 // Product model. WSPR-TX Pico                            =1028
 // Product model. WSPR-TX_LP1 with Mezzanine BLP4 card    =1029
-
 const uint16_t Product_Model = 1012;
-
-#include <EEPROM.h>
-#include <SoftwareSerial.h>
-#include <NMEAGPS.h> //NeoGps by SlashDevin"
-
-NMEAGPS gps; // This parses the GPS characters
-gps_fix fix; // This holds on to the latest values
 
 // Data structures
 enum E_Band
