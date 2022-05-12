@@ -12,16 +12,6 @@
   pin A1 Hardware Sleep signal of the GPS on the WSPR-TX Pico, The Mini is using Serial command to put GPS to sleep.
   pin A3 Power-down the Si5351 from this pin on the WSPR-TX Mini
 
-  To compile :
-  1 set board to "Arduino Pro or Pro Mini", set processor to ATMega328P(3.3V, 8MHZ)
-  2 Install library "NeoGPS by Slash Devin" you will find it in the library manager
-  3 locate and modify the file NMEAGPS_cfg.h. it is part of the NeoGPS library and on a Windows computer it is usually in ..\Documents\Arduino\libraries\NeoGPS\src
-  4 in that file add the following lines and save it:
-   #define NMEAGPS_PARSE_GSV
-   #define NMEAGPS_PARSE_SATELLITE_INFO
-   #define NMEAGPS_PARSE_SATELLITES
-
-  //Harry
 */
 
 #include <Arduino.h>
@@ -250,11 +240,9 @@ void PowerSaveON();
 
 void GPSGoToSleep();
 void GPSWakeUp();
-
 void GPSReset();
 
 void Si5351PowerOff();
-
 void Si5351PowerOn();
 
 void SerialPrintZero();
