@@ -137,6 +137,13 @@ struct S_FactoryData
 // declarations
 
 void DecodeSerialCMD(const char *InputCMD);
+uint8_t BandNumOfHigestLP();
+int GetVCC();
+void NextFreq(void);
+void PickLP(uint8_t TXBand);
+void SendAPIUpdate(uint8_t UpdateType);
+void calcLocator(double lat, double lon);
+boolean CorrectTimeslot();
 
 // Constants
 #define I2C_START 0x08
@@ -252,8 +259,100 @@ char LastMaidenHead6[7];        // Holds the Maidenhead position from last trans
 // The serial connection to the GPS device
 SoftwareSerial GPSSerial(2, 3); // GPS Serial port, RX on pin 2, TX on pin 3
 
+// function declarations
+
+// si5351 related
 void si5351aOutputOff(uint8_t clk);
 void si5351aSetFrequency(uint32_t frequency);
+boolean DetectSi5351I2CAddress();
+void setupMultisynth(uint8_t synth, uint32_t Divider, uint8_t rDiv);
+void si5351aOutputOff(uint8_t clk);
+void si5351aSetFrequency(uint64_t frequency);
+
+void DoSerialHandling();
+void DecodeSerialCMD(const char *InputCMD);
+
+uint64_t StrTouint64_t(String InString);
+String uint64ToStr(uint64_t p_InNumber, boolean p_LeadingZeros);
+
+// silabs related
+void DoSignalGen();
+void DoIdle();
+void DoWSPR();
+
+// wspr related
+int SendWSPRMessage(uint8_t WSPRMessageType);
+
+void calcLocator(double lat, double lon);
+boolean NewPosition();
+void StorePosition();
+
+static void smartdelay(unsigned long delay_ms);
+
+// i2c related
+uint8_t i2cStart();
+void i2cStop();
+uint8_t i2cByteSend(uint8_t data);
+uint8_t i2cByteRead();
+uint8_t i2cSendRegister(uint8_t reg, uint8_t data);
+uint8_t i2cReadRegister(uint8_t reg, uint8_t *data);
+void i2cInit();
+
+void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom);
+
+unsigned long RandomSeed(void);
+boolean NoBandEnabled(void);
+void NextFreq(void);
+boolean LastFreq(void);
+
+// eeprom related
+unsigned long GetEEPROM_CRC(boolean EEPROMSpace);
+bool LoadFromEPROM(boolean EEPROMSpace);
+void SaveToEEPROM(boolean EEPROMSpace);
+
+void SendAPIUpdate(uint8_t UpdateType);
+
+void LEDBlink(int Blinks);
+
+void DriveLPFilters();
+
+uint8_t FreqToBand();
+void PickLP(uint8_t TXBand);
+uint8_t BandNumOfHigestLP();
+
+int GetVCC();
+
+void PowerSaveOFF();
+void PowerSaveON();
+
+void GPSGoToSleep();
+void GPSWakeUp();
+
+void GPSReset();
+
+void Si5351PowerOff();
+
+void Si5351PowerOn();
+
+void SerialPrintZero();
+void SendSatData();
+uint8_t EncodeChar(char Character);
+
+void wspr_encode(const char *call, const char *loc, const uint8_t dbm, uint8_t *symbols, uint8_t WSPRMessageType);
+void wspr_message_prep(char *call, char *loc, uint8_t dbm);
+uint8_t ValiddBmValue(uint8_t dBmIn);
+void convolve(uint8_t *c, uint8_t *s, uint8_t message_size, uint8_t bit_size);
+void wspr_interleave(uint8_t *s);
+void wspr_merge_sync_vector(uint8_t *g, uint8_t *symbols);
+uint8_t wspr_code(char c);
+
+uint32_t WSPRCallHash(const char *call);
+boolean CorrectTimeslot();
+
+// geofence related
+boolean OutsideGeoFence();
+
+// Implementation of functions
 
 // Parts from NickGammon Serial Input example
 // http://www.gammon.com.au/serial
