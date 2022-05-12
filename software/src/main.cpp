@@ -995,8 +995,8 @@ String uint64ToStr(uint64_t p_InNumber, boolean p_LeadingZeros)
     String l_ResultString = "";
     uint8_t l_Digit;
 
-    sprintf(l_HighBuffer, "%06lu", p_InNumber / 1000000L); // Convert high part of 64bit unsigned integer to char array
-    sprintf(l_LowBuffer, "%06lu", p_InNumber % 1000000L);  // Convert low part of 64bit unsigned integer to char array
+    sprintf(l_HighBuffer, "%06llu", p_InNumber / 1000000L); // Convert high part of 64bit unsigned integer to char array
+    sprintf(l_LowBuffer, "%06llu", p_InNumber % 1000000L);  // Convert low part of 64bit unsigned integer to char array
     l_ResultString = l_HighBuffer;
     l_ResultString = l_ResultString + l_LowBuffer; // Copy the 2 part result to a string
 
