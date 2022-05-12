@@ -1061,7 +1061,6 @@ void DoIdle()
 
 void DoWSPR()
 {
-    int i;
     uint8_t pwr1, pwr2; // Used in Altitude to power reporting (balloon coding)
     uint32_t AltitudeInMeter;
     boolean ConfigError;
@@ -1227,7 +1226,6 @@ int SendWSPRMessage(uint8_t WSPRMessageType)
 {
     uint8_t i;
     uint8_t Indicator;
-    uint8_t BlinkCount;
     unsigned long startmillis;
     unsigned long endmillis;
     boolean TXEnabled = true;
@@ -2918,8 +2916,6 @@ uint32_t WSPRCallHash(const char *call)
     uint32_t a, b, c;
     char CallWithSuPrefix[11];
     uint8_t Length = strlen(call);
-    uint8_t TenDigit = 0;
-    uint8_t Number;
     uint8_t CharLoop;
     Serial.print("Length ");
     Serial.print(Length);
@@ -3112,7 +3108,6 @@ boolean CorrectTimeslot()
 
 void setup()
 {
-    int i;
     // bool i2c_found;
     i2cInit();
     PCConnected = false;
