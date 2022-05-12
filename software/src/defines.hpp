@@ -28,7 +28,6 @@
 #define SI_CLK_SRC_PLL_A 0b00000000
 #define SI_CLK_SRC_PLL_B 0b00100000
 
-#define WSPR_SYMBOL_COUNT 162
 
 #define WSPR_FREQ23cm 129650150000ULL // 23cm 1296.501,500MHz (Overtone, not implemented)
 #define WSPR_FREQ70cm 43230150000ULL  // 70cm  432.301,500MHz (Overtone, not implemented)
