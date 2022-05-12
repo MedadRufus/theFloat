@@ -19,6 +19,10 @@ uint8_t *get_tx_buffer_ptr()
     return tx_buffer;
 }
 
+uint8_t get_tx_buffer_size()
+{
+    return sizeof(tx_buffer);
+}
 // Converts a letter (A-Z) or digit (0-9)to a special format used in the encoding of WSPR messages
 uint8_t EncodeChar(char Character)
 {

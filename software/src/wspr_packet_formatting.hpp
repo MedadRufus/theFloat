@@ -10,5 +10,6 @@ void wspr_merge_sync_vector(uint8_t *g, uint8_t *symbols);
 uint8_t wspr_code(char c);
 
 uint8_t *get_tx_buffer_ptr();
+uint8_t get_tx_buffer_size();
 
 uint32_t WSPRCallHash(const char *call, S_GadgetData GadgetData);

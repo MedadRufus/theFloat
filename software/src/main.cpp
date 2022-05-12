@@ -1101,7 +1101,7 @@ int SendWSPRMessage(uint8_t WSPRMessageType)
     boolean blinked;
 
     uint8_t *tx_buffer = get_tx_buffer_ptr();
-    memset(tx_buffer, 0, sizeof(tx_buffer));                                                                                                            // clear WSPR symbol buffer
+    memset(tx_buffer, 0, get_tx_buffer_size());                                                                                                         // clear WSPR symbol buffer
     wspr_encode(GadgetData.WSPRData.CallSign, GadgetData.WSPRData.MaidenHead4, GadgetData.WSPRData.TXPowerdBm, tx_buffer, WSPRMessageType, GadgetData); // Send a WSPR message for 2 minutes
     // PrintBuffer ('B');
     //  Send WSPR for two minutes
