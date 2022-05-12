@@ -62,8 +62,6 @@
 #define UMesVCC 10
 #define UMesWSPRBandCycleComplete 11
 
-
-
 // Hardware defines
 
 #define Relay1 5
@@ -72,3 +70,6 @@
 #define TransmitLED 8 // Red LED next to RF out SMA that will turn on when Transmitting (Pico model do not have a TX LED)
 #define GPSPower A1   // Sleep-Wake signal of the GPS on the WSPR-TX Pico
 #define SiPower A3    // Power the Si5351 from this pin on the WSPR-TX Mini
+
+// macro functions
+#define rot(x, k) ((x << k) | (x >> (32 - k)))

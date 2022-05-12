@@ -2899,7 +2899,6 @@ boolean OutsideGeoFence()
 // Type 3 call sign hash by RFZero www.rfzero.net modified by SM7PNV
 uint32_t WSPRCallHash(const char *call)
 {
-#define rot(x, k) ((x << k) | (x >> (32 - k)))
 
     uint32_t a, b, c;
     char CallWithSuPrefix[11];
