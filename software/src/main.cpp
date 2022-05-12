@@ -162,7 +162,6 @@ boolean PCConnected;
 uint16_t LoopGPSNoReceiveCount; // If GPS stops working while in ídle mode this will increment
 char LastMaidenHead6[7];        // Holds the Maidenhead position from last transmission, used when GadgetData.WSPRData.TimeSlotCode=17 to determine if the transmitter has moved since last TX
 
-
 // function declarations
 
 void DecodeSerialCMD(const char *InputCMD);
@@ -278,22 +277,30 @@ void DoSerialHandling()
         InChar = Serial.read();
         switch (InChar)
         {
-        case '\n':                     // end of text
+        case '\n': // end of text
+        {
             SerialLine[input_pos] = 0; // terminating null byte
             // terminator reached, process Command
             DecodeSerialCMD(SerialLine);
             // reset buffer for next time
             input_pos = 0;
             break;
+        }
 
         case '\r': // discard carriage return
+        {
             break;
+        }
 
         default:
+        {
             // keep adding if not full ... allow for terminating null byte
             if (input_pos < (SerCMDLength - 1))
+            {
                 SerialLine[input_pos++] = InChar;
+            }
             break;
+        }
 
         } // end of switch
     }     // end of processIncomingByte
@@ -3314,7 +3321,9 @@ void loop()
         DoSerialHandling();
     }
     if (CurrentMode == WSPRBeacon)
+    {
         DoWSPR(); // If in WSPR beacon mode but it broke out of beacon loop to handle a Serial data from the PC then go back to the WSPR routine
+    }
     while (gps.available(GPSSerial))
     { // Handle Serial data from the GPS as they arrive
         fix = gps.read();
