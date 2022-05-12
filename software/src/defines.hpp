@@ -70,5 +70,3 @@
 #define GPSPower A1   // Sleep-Wake signal of the GPS on the WSPR-TX Pico
 #define SiPower A3    // Power the Si5351 from this pin on the WSPR-TX Mini
 
-// macro functions
-#define rot(x, k) ((x << k) | (x >> (32 - k)))

@@ -22,6 +22,7 @@
 #include <i2c.hpp>
 #include "string_operations.hpp"
 #include "wspr_packet_formatting.hpp"
+#include "datatypes.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -59,62 +60,6 @@ enum E_Band
     VHF2m = 13,
     UHF70cm = 14,
     UHF23cm = 15
-};
-
-enum E_Mode
-{
-    WSPRBeacon,
-    SignalGen,
-    Idle
-};
-
-enum E_LocatorOption
-{
-    Manual,
-    GPS
-};
-
-enum E_PowerOption
-{
-    Normal,
-    Altitude
-};
-
-enum E_SufixPreFixOption
-{
-    Sufix,
-    Prefix,
-    None
-};
-
-struct S_WSPRData
-{
-    char CallSign[7];                   // Radio amateur Call Sign, zero terminated string can be four to six char in length + zero termination
-    E_SufixPreFixOption SuPreFixOption; // If a suffix or Prefix to the Callsign is used or not
-    char Prefix[4];                     // Prefix three chars max and a zero termination
-    uint8_t Sufix;                      // Sufix code in WSPR format, e.g single digit is 0-9, single char (A to Z) is 10-35, double digits (10-99) is 36-125
-    E_LocatorOption LocatorOption;      // If transmitted Maidenhead locator is based of GPS location or if it is using MaidneHead4 variable.
-    uint8_t LocationPrecision;          // Determines if a second Type 3 transmission will be sent to increase the postiton precision.
-    char MaidenHead4[5];                // Maidenhead locator with four characters and a zero termination
-    char MaidenHead6[7];                // Maidenhead locator with six characters and a zero termination
-    E_PowerOption PowerOption;          // If transmitted Power is based on TXPowerdBm field or is calculated from GPS Altitude.
-    uint8_t TXPowerdBm;                 // Power data in dBm min=0 max=60
-    uint8_t TimeSlotCode;               // Determine on what time slot a tranmsission will be made. If TimeslotCode is 0 to 4 a ten minute scheduled transmission will be used.
-    // 0=TX om minute 0,10,20.. 1=TX on minute 2,12,22..  ..4=TX om minute 08,18,28 etc. If Timeslotcode is 5 to 14 a twenty minute schedule code will be used.
-    // 5=TX on minute 0,20,40.  6=TX on minute 2,22,42.  ..14=TX on minute 18,38,58.
-    // if the TimeslotCode is 15 a special band coordinated schedule is used.
-    // If the TimeslotCode is 16 then no schedule is used, e.g transmission can occur at any time
-    // If the TimeslotCode is 17 then transmisson will only occur if GPS derived Maidenhead position has been updated since last transmission. E.g it becomes a tracker that only transmits position updates.
-};
-
-struct S_GadgetData
-{
-    char Name[40];          // Optional Name of the device.
-    E_Mode StartMode;       // What mode the Gadget should go to after boot.
-    S_WSPRData WSPRData;    // Data needed to transmit a WSPR packet.
-    bool TXOnBand[16];      // Arraycount corresponds to the Enum E_Band, True =Transmitt Enabled, False = Transmitt disabled on this band
-    unsigned long TXPause;  // Number of seconds to pause after having transmitted on all enabled bands.
-    uint64_t GeneratorFreq; // Frequency for when in signal Generator mode. Freq in centiHertz.
 };
 
 struct S_FactoryData
@@ -1156,8 +1101,8 @@ int SendWSPRMessage(uint8_t WSPRMessageType)
     boolean blinked;
 
     uint8_t *tx_buffer = get_tx_buffer_ptr();
-    memset(tx_buffer, 0, sizeof(tx_buffer));                                                                                                // clear WSPR symbol buffer
-    wspr_encode(GadgetData.WSPRData.CallSign, GadgetData.WSPRData.MaidenHead4, GadgetData.WSPRData.TXPowerdBm, tx_buffer, WSPRMessageType); // Send a WSPR message for 2 minutes
+    memset(tx_buffer, 0, sizeof(tx_buffer));                                                                                                            // clear WSPR symbol buffer
+    wspr_encode(GadgetData.WSPRData.CallSign, GadgetData.WSPRData.MaidenHead4, GadgetData.WSPRData.TXPowerdBm, tx_buffer, WSPRMessageType, GadgetData); // Send a WSPR message for 2 minutes
     // PrintBuffer ('B');
     //  Send WSPR for two minutes
     digitalWrite(StatusLED, HIGH);
@@ -2348,126 +2293,6 @@ boolean OutsideGeoFence()
     }
 
     return Outside;
-}
-
-// Type 3 call sign hash by RFZero www.rfzero.net modified by SM7PNV
-uint32_t WSPRCallHash(const char *call)
-{
-
-    uint32_t a, b, c;
-    char CallWithSuPrefix[11];
-    uint8_t Length = strlen(call);
-    uint8_t CharLoop;
-    Serial.print("Length ");
-    Serial.print(Length);
-    strcpy(CallWithSuPrefix, call);
-    if (GadgetData.WSPRData.SuPreFixOption == Sufix)
-    {
-        CallWithSuPrefix[Length] = '/';     // Add slash at the end
-        if (GadgetData.WSPRData.Sufix < 36) // Single digit or letter
-        {
-            CallWithSuPrefix[Length + 2] = 0; // Zero terminate
-            if (GadgetData.WSPRData.Sufix < 10)
-            {
-                CallWithSuPrefix[Length + 1] = '0' + GadgetData.WSPRData.Sufix; // Add a single digit
-            }
-            else
-            {
-                CallWithSuPrefix[Length + 1] = 'A' + (GadgetData.WSPRData.Sufix - 10); // Add a single letter
-            }
-        }
-        else // Suffix is double digits
-        {
-            /* Seems the Type 3 decodes are not correct in case of two suffix numbers so this code is commented out for now as it will not be used by the Configurtion software
-              Number=GadgetData.WSPRData.Sufix-36;
-              while (Number>9)
-              {
-              ++TenDigit;
-              Number -= 10;
-              }
-              CallWithSuPrefix[Length+1]='0'+TenDigit; //Add the Ten Digit
-              CallWithSuPrefix[Length+2]='0'+Number; //Add the One Digit
-              CallWithSuPrefix[Length+3]=0; //Zero terminate
-            */
-        }
-    } // if Sufix
-    else if (GadgetData.WSPRData.SuPreFixOption == Prefix)
-    {
-        CallWithSuPrefix[0] = GadgetData.WSPRData.Prefix[0];
-        CallWithSuPrefix[1] = GadgetData.WSPRData.Prefix[1];
-        CallWithSuPrefix[2] = GadgetData.WSPRData.Prefix[2];
-        CallWithSuPrefix[3] = '/';
-
-        for (CharLoop = 0; CharLoop < Length; CharLoop++)
-        {
-            CallWithSuPrefix[CharLoop + 4] = call[CharLoop];
-        }
-    } // else if Prefix
-
-    Length = strlen(CallWithSuPrefix);
-    // Serial.print(" : ");
-    // Serial.println(Length);
-    // Serial.print("{MIN} Call with Sufix=");
-    // Serial.println(CallWithSuPrefix);
-
-    a = b = c = 0xdeadbeef + Length + 146;
-
-    const uint32_t *k = (const uint32_t *)CallWithSuPrefix;
-
-    switch (Length) // Length 3-10 chars, thus 0, 1, 2, 11 and 12 omitted
-    {
-    case 10:
-        c += k[2] & 0xffff;
-        b += k[1];
-        a += k[0];
-        break;
-    case 9:
-        c += k[2] & 0xff;
-        b += k[1];
-        a += k[0];
-        break;
-    case 8:
-        b += k[1];
-        a += k[0];
-        break;
-    case 7:
-        b += k[1] & 0xffffff;
-        a += k[0];
-        break;
-    case 6:
-        b += k[1] & 0xffff;
-        a += k[0];
-        break;
-    case 5:
-        b += k[1] & 0xff;
-        a += k[0];
-        break;
-    case 4:
-        a += k[0];
-        break;
-    case 3:
-        a += k[0] & 0xffffff;
-        break;
-    }
-
-    c ^= b;
-    c -= rot(b, 14);
-    a ^= c;
-    a -= rot(c, 11);
-    b ^= a;
-    b -= rot(a, 25);
-    c ^= b;
-    c -= rot(b, 16);
-    a ^= c;
-    a -= rot(c, 4);
-    b ^= a;
-    b -= rot(a, 14);
-    c ^= b;
-    c -= rot(b, 24);
-
-    c &= 0xFFFF; // 15 bits mask
-
-    return c;
 }
 
 // Only transmit on specific times

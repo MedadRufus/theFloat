@@ -1,6 +1,10 @@
 #include "wspr_packet_formatting.hpp"
+#include "datatypes.hpp"
 
 #define WSPR_SYMBOL_COUNT 162
+
+// macro functions
+#define rot(x, k) ((x << k) | (x >> (32 - k)))
 
 // from Jason Mildrums JTEncode class
 char callsign[7];
@@ -37,7 +41,7 @@ uint8_t EncodeChar(char Character)
     return ConvertedNumber;
 }
 
-void wspr_encode(const char *call, const char *loc, const uint8_t dbm, uint8_t *symbols, uint8_t WSPRMessageType)
+void wspr_encode(const char *call, const char *loc, const uint8_t dbm, uint8_t *symbols, uint8_t WSPRMessageType, S_GadgetData GadgetData)
 {
     char call_[7];
     char loc_[5];
@@ -113,7 +117,7 @@ void wspr_encode(const char *call, const char *loc, const uint8_t dbm, uint8_t *
         n = n * 27 + (wspr_code(GadgetData.WSPRData.MaidenHead6[4]) - 10);
         n = n * 27 + (wspr_code(GadgetData.WSPRData.MaidenHead6[5]) - 10);
         n = n * 27 + (wspr_code(GadgetData.WSPRData.MaidenHead6[0]) - 10);
-        m = 128 * WSPRCallHash(call) - power - 1 + 64;
+        m = 128 * WSPRCallHash(call, GadgetData) - power - 1 + 64;
         break;
 
     } // switch
@@ -352,4 +356,124 @@ uint8_t wspr_code(char c)
     {
         return 255;
     }
+}
+
+// Type 3 call sign hash by RFZero www.rfzero.net modified by SM7PNV
+uint32_t WSPRCallHash(const char *call, S_GadgetData GadgetData)
+{
+
+    uint32_t a, b, c;
+    char CallWithSuPrefix[11];
+    uint8_t Length = strlen(call);
+    uint8_t CharLoop;
+    Serial.print("Length ");
+    Serial.print(Length);
+    strcpy(CallWithSuPrefix, call);
+    if (GadgetData.WSPRData.SuPreFixOption == Sufix)
+    {
+        CallWithSuPrefix[Length] = '/';     // Add slash at the end
+        if (GadgetData.WSPRData.Sufix < 36) // Single digit or letter
+        {
+            CallWithSuPrefix[Length + 2] = 0; // Zero terminate
+            if (GadgetData.WSPRData.Sufix < 10)
+            {
+                CallWithSuPrefix[Length + 1] = '0' + GadgetData.WSPRData.Sufix; // Add a single digit
+            }
+            else
+            {
+                CallWithSuPrefix[Length + 1] = 'A' + (GadgetData.WSPRData.Sufix - 10); // Add a single letter
+            }
+        }
+        else // Suffix is double digits
+        {
+            /* Seems the Type 3 decodes are not correct in case of two suffix numbers so this code is commented out for now as it will not be used by the Configurtion software
+              Number=GadgetData.WSPRData.Sufix-36;
+              while (Number>9)
+              {
+              ++TenDigit;
+              Number -= 10;
+              }
+              CallWithSuPrefix[Length+1]='0'+TenDigit; //Add the Ten Digit
+              CallWithSuPrefix[Length+2]='0'+Number; //Add the One Digit
+              CallWithSuPrefix[Length+3]=0; //Zero terminate
+            */
+        }
+    } // if Sufix
+    else if (GadgetData.WSPRData.SuPreFixOption == Prefix)
+    {
+        CallWithSuPrefix[0] = GadgetData.WSPRData.Prefix[0];
+        CallWithSuPrefix[1] = GadgetData.WSPRData.Prefix[1];
+        CallWithSuPrefix[2] = GadgetData.WSPRData.Prefix[2];
+        CallWithSuPrefix[3] = '/';
+
+        for (CharLoop = 0; CharLoop < Length; CharLoop++)
+        {
+            CallWithSuPrefix[CharLoop + 4] = call[CharLoop];
+        }
+    } // else if Prefix
+
+    Length = strlen(CallWithSuPrefix);
+    // Serial.print(" : ");
+    // Serial.println(Length);
+    // Serial.print("{MIN} Call with Sufix=");
+    // Serial.println(CallWithSuPrefix);
+
+    a = b = c = 0xdeadbeef + Length + 146;
+
+    const uint32_t *k = (const uint32_t *)CallWithSuPrefix;
+
+    switch (Length) // Length 3-10 chars, thus 0, 1, 2, 11 and 12 omitted
+    {
+    case 10:
+        c += k[2] & 0xffff;
+        b += k[1];
+        a += k[0];
+        break;
+    case 9:
+        c += k[2] & 0xff;
+        b += k[1];
+        a += k[0];
+        break;
+    case 8:
+        b += k[1];
+        a += k[0];
+        break;
+    case 7:
+        b += k[1] & 0xffffff;
+        a += k[0];
+        break;
+    case 6:
+        b += k[1] & 0xffff;
+        a += k[0];
+        break;
+    case 5:
+        b += k[1] & 0xff;
+        a += k[0];
+        break;
+    case 4:
+        a += k[0];
+        break;
+    case 3:
+        a += k[0] & 0xffffff;
+        break;
+    }
+
+    c ^= b;
+    c -= rot(b, 14);
+    a ^= c;
+    a -= rot(c, 11);
+    b ^= a;
+    b -= rot(a, 25);
+    c ^= b;
+    c -= rot(b, 16);
+    a ^= c;
+    a -= rot(c, 4);
+    b ^= a;
+    b -= rot(a, 14);
+    c ^= b;
+    c -= rot(b, 24);
+
+    c &= 0xFFFF; // 15 bits mask
+
+    return c;
 }
