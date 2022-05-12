@@ -19,12 +19,15 @@
 #include <SoftwareSerial.h>
 #include <NMEAGPS.h> //NeoGps by SlashDevin"
 #include <defines.hpp>
+#include <i2c.hpp>
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
 
 const uint8_t SoftwareVersion = 1;   // 0 to 255. 0=Beta
 const uint8_t SoftwareRevision = 12; // 0 to 255
+
+boolean Si5351I2C_found = false;
 
 // Product model. WSPR-TX_LP1                             =1011
 // Product model. WSPR-TX Desktop                         =1012
@@ -144,7 +147,6 @@ uint8_t power;
 // GeoFence grids by Matt Downs - 2E1GYP and Harry Zachrisson - SM7PNV , save some RAM by putting the string in program memmory
 const char NoTXGrids[] PROGMEM = {"IO78 IO88 IO77 IO87 IO76 IO86 IO75 IO85 IO84 IO94 IO83 IO93 IO82 IO92 JO02 IO81 IO91 JO01 IO70 IO80 IO90 IO64 PN31 PN41 PN20 PN30 PN40 PM29 PM39 PM28 PM38 LK16 LK15 LK14 LK13 LK23 LK24 LK25 LK26 LK36 LK35 LK34 LK33 LK44 LK45 LK46 LK47 LK48 LK58 LK57 LK56 LK55"}; // Airborne transmissions of this sort are not legal over the UK, North Korea, or Yemen.
 
-uint8_t Si5351I2CAddress;        // The I2C address on the Si5351 as detected on startup
 uint8_t CurrentBand = 0;         // Keeps track on what band we are currently tranmitting on
 uint8_t CurrentLP = 0;           // Keep track on what Low Pass filter is currently switched in
 const uint8_t SerCMDLength = 50; // Max number of char on a command in the SerialAPI
@@ -177,7 +179,6 @@ boolean CorrectTimeslot();
 // si5351 related
 void si5351aOutputOff(uint8_t clk);
 void si5351aSetFrequency(uint32_t frequency);
-boolean DetectSi5351I2CAddress();
 void setupMultisynth(uint8_t synth, uint32_t Divider, uint8_t rDiv);
 void si5351aOutputOff(uint8_t clk);
 void si5351aSetFrequency(uint64_t frequency);
@@ -201,15 +202,6 @@ boolean NewPosition();
 void StorePosition();
 
 static void smartdelay(unsigned long delay_ms);
-
-// i2c related
-uint8_t i2cStart();
-void i2cStop();
-uint8_t i2cByteSend(uint8_t data);
-uint8_t i2cByteRead();
-uint8_t i2cSendRegister(uint8_t reg, uint8_t data);
-uint8_t i2cReadRegister(uint8_t reg, uint8_t *data);
-void i2cInit();
 
 void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom);
 
@@ -1030,7 +1022,7 @@ String uint64ToStr(uint64_t p_InNumber, boolean p_LeadingZeros)
 
 void DoSignalGen()
 {
-    if (Si5351I2CAddress == 0)
+    if (Si5351I2C_found == false)
     {
         Serial.println(F("{MIN}Hardware ERROR! No Si5351 PLL device found on the I2C buss!"));
     }
@@ -1071,7 +1063,7 @@ void DoWSPR()
     {
         WSPRMessageTypeToUse = 2;
     }
-    if (Si5351I2CAddress == 0)
+    if (Si5351I2C_found == false)
     {
         Serial.println(F("{MIN}Hardware ERROR! No Si5351 PLL device found on the I2C buss!"));
     }
@@ -1380,149 +1372,6 @@ static void smartdelay(unsigned long delay_ms)
     } while ((TimeLeft > 0) && (!Serial.available())); // Until time is up or there is serial data received from the computer, in that case end early
     if (delay_ms > 4000)
         Serial.println(F("{MPS} 0")); // When pause is complete send Pause 0 to the GUI so it looks neater. But only if it was at least a four second delay
-}
-
-// I2C and PLL routines from Hans Summer demo code https://www.qrp-labs.com/images/uarduino/uard_demo.ino
-uint8_t i2cStart()
-{
-    TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN);
-
-    while (!(TWCR & (1 << TWINT)))
-        ;
-
-    return (TWSR & 0xF8);
-}
-
-void i2cStop()
-{
-    TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
-
-    while ((TWCR & (1 << TWSTO)))
-        ;
-}
-
-uint8_t i2cByteSend(uint8_t data)
-{
-    TWDR = data;
-
-    TWCR = (1 << TWINT) | (1 << TWEN);
-
-    while (!(TWCR & (1 << TWINT)))
-        ;
-
-    return (TWSR & 0xF8);
-}
-
-uint8_t i2cByteRead()
-{
-    TWCR = (1 << TWINT) | (1 << TWEN);
-
-    while (!(TWCR & (1 << TWINT)))
-        ;
-
-    return (TWDR);
-}
-
-boolean DetectSi5351I2CAddress()
-{
-    uint8_t I2CResult;
-    boolean Result;
-    Si5351I2CAddress = 96; // Try with the normal adress of 96
-    i2cStart();
-    I2CResult = i2cByteSend((Si5351I2CAddress << 1));
-    i2cStop();
-    if (I2CResult == I2C_SLA_W_ACK)
-    {
-        // We found it
-        // Serial.println("Detected at adress 96");
-        Result = true;
-    }
-    else
-    {
-        // Serial.println("Not Detected at adress 96");
-        Si5351I2CAddress = 98; // Try the alternative address of 98
-        i2cStart();
-        I2CResult = i2cByteSend((Si5351I2CAddress << 1));
-        i2cStop();
-        if (I2CResult == I2C_SLA_W_ACK)
-        {
-            // Serial.println("Detected at adress 98");
-            Result = true;
-        }
-        else
-        {
-            // Serial.println("Not Detected at adress 98 either, no Si5351!");
-            Result = false;
-            Si5351I2CAddress = 0;
-        }
-    }
-    return Result;
-}
-
-uint8_t i2cSendRegister(uint8_t reg, uint8_t data)
-{
-    uint8_t stts;
-
-    stts = i2cStart();
-    if (stts != I2C_START)
-        return 1;
-
-    stts = i2cByteSend(Si5351I2CAddress << 1);
-    if (stts != I2C_SLA_W_ACK)
-        return 2;
-
-    stts = i2cByteSend(reg);
-    if (stts != I2C_DATA_ACK)
-        return 3;
-
-    stts = i2cByteSend(data);
-    if (stts != I2C_DATA_ACK)
-        return 4;
-
-    i2cStop();
-
-    return 0;
-}
-
-uint8_t i2cReadRegister(uint8_t reg, uint8_t *data)
-{
-    uint8_t stts;
-
-    stts = i2cStart();
-    if (stts != I2C_START)
-        return 1;
-
-    stts = i2cByteSend((Si5351I2CAddress << 1));
-    if (stts != I2C_SLA_W_ACK)
-        return 2;
-
-    stts = i2cByteSend(reg);
-    if (stts != I2C_DATA_ACK)
-        return 3;
-
-    stts = i2cStart();
-    if (stts != I2C_START_RPT)
-        return 4;
-
-    stts = i2cByteSend((Si5351I2CAddress << 1) + 1);
-    if (stts != I2C_SLA_R_ACK)
-        return 5;
-
-    *data = i2cByteRead();
-
-    i2cStop();
-
-    return 0;
-}
-
-// Init TWI (I2C)
-//
-void i2cInit()
-{
-    TWBR = 92;
-    TWSR = 0;
-    TWDR = 0xFF;
-    PRR = 0;
 }
 
 // I2C and PLL routines from Hans Summer demo code https://www.qrp-labs.com/images/uarduino/uard_demo.ino
@@ -3344,7 +3193,7 @@ void setup()
     random(RandomSeed());
     PowerSaveOFF();
 
-    DetectSi5351I2CAddress();
+    Si5351I2C_found = DetectSi5351I2CAddress();
 
     // wspr_encode(GadgetData.WSPRData.CallSign, GadgetData.WSPRData.MaidenHead4, GadgetData.WSPRData.TXPowerdBm, tx_buffer, 3);
 
