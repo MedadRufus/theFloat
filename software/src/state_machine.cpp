@@ -160,16 +160,16 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 { // Set option
                     if (InputCMD[8] == 'S')
                     {
-                        DoSignalGen();
+                        // DoSignalGen(); // UNDO LATER
                     }
                     if (InputCMD[8] == 'W')
                     {
                         // CurrentBand = 0;
-                        DoWSPR();
+                        // DoWSPR(); // UNDO LATER
                     }
                     if (InputCMD[8] == 'N')
                     {
-                        DoIdle();
+                        // DoIdle(); // UNDO LATER
                     }
                 }    // Set Current Mode
                 else // Get
@@ -636,7 +636,7 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                     GadgetData.GeneratorFreq = StrTouint64_t(CharInt);
                     if (CurrentMode == SignalGen)
                     {
-                        DoSignalGen();
+                        // DoSignalGen(); // UNDO LATER
                     }
                 }
                 else // Get
