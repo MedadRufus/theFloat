@@ -3,6 +3,7 @@
 #include "defines.hpp"
 #include "datatypes.hpp"
 #include "print_operations.hpp"
+#include "eeprom.hpp"
 
 extern E_Mode CurrentMode;        // TODO: replace with getters and setters
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
