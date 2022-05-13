@@ -2,7 +2,7 @@
 #include "defines.hpp"
 #include "i2c.hpp"
 #include "string_operations.hpp"
-#include "api_update.hpp"
+#include "state_machine.hpp"
 
 uint8_t Si5351I2CAddress; // The I2C address on the Si5351 as detected on startup
 
