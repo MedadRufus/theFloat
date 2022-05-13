@@ -1,4 +1,8 @@
 #include "sleep.hpp"
+#include "SoftwareSerial.h"
+
+extern int StatusLED;            // LED that indicates current status. Yellow on LP1, Desktop and Mini models, white on Pico
+extern SoftwareSerial GPSSerial; // GPS Serial port, RX on pin 2, TX on pin 3
 
 // Sleep code from Kevin Darrah https://www.youtube.com/watch?v=urLSDi7SD8M
 ISR(WDT_vect)
