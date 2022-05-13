@@ -1,8 +1,6 @@
 #include "i2c.hpp"
 #include "defines.hpp"
 
-uint8_t Si5351I2CAddress; // The I2C address on the Si5351 as detected on startup
-
 // Init TWI (I2C)
 //
 void i2cInit()
@@ -13,7 +11,7 @@ void i2cInit()
     PRR = 0;
 }
 
-uint8_t i2cSendRegister(uint8_t reg, uint8_t data)
+uint8_t i2cSendRegister(uint8_t reg, uint8_t data, uint8_t i2c_address)
 {
     uint8_t stts;
 
@@ -21,7 +19,7 @@ uint8_t i2cSendRegister(uint8_t reg, uint8_t data)
     if (stts != I2C_START)
         return 1;
 
-    stts = i2cByteSend(Si5351I2CAddress << 1);
+    stts = i2cByteSend(i2c_address << 1);
     if (stts != I2C_SLA_W_ACK)
         return 2;
 
@@ -38,7 +36,7 @@ uint8_t i2cSendRegister(uint8_t reg, uint8_t data)
     return 0;
 }
 
-uint8_t i2cReadRegister(uint8_t reg, uint8_t *data)
+uint8_t i2cReadRegister(uint8_t reg, uint8_t *data, uint8_t i2c_address)
 {
     uint8_t stts;
 
@@ -46,7 +44,7 @@ uint8_t i2cReadRegister(uint8_t reg, uint8_t *data)
     if (stts != I2C_START)
         return 1;
 
-    stts = i2cByteSend((Si5351I2CAddress << 1));
+    stts = i2cByteSend((i2c_address << 1));
     if (stts != I2C_SLA_W_ACK)
         return 2;
 
@@ -58,7 +56,7 @@ uint8_t i2cReadRegister(uint8_t reg, uint8_t *data)
     if (stts != I2C_START_RPT)
         return 4;
 
-    stts = i2cByteSend((Si5351I2CAddress << 1) + 1);
+    stts = i2cByteSend((i2c_address << 1) + 1);
     if (stts != I2C_SLA_R_ACK)
         return 5;
 
@@ -108,40 +106,4 @@ uint8_t i2cByteRead()
         ;
 
     return (TWDR);
-}
-
-boolean DetectSi5351I2CAddress()
-{
-    uint8_t I2CResult;
-    boolean Result;
-    Si5351I2CAddress = 96; // Try with the normal adress of 96
-    i2cStart();
-    I2CResult = i2cByteSend((Si5351I2CAddress << 1));
-    i2cStop();
-    if (I2CResult == I2C_SLA_W_ACK)
-    {
-        // We found it
-        // Serial.println("Detected at adress 96");
-        Result = true;
-    }
-    else
-    {
-        // Serial.println("Not Detected at adress 96");
-        Si5351I2CAddress = 98; // Try the alternative address of 98
-        i2cStart();
-        I2CResult = i2cByteSend((Si5351I2CAddress << 1));
-        i2cStop();
-        if (I2CResult == I2C_SLA_W_ACK)
-        {
-            // Serial.println("Detected at adress 98");
-            Result = true;
-        }
-        else
-        {
-            // Serial.println("Not Detected at adress 98 either, no Si5351!");
-            Result = false;
-            Si5351I2CAddress = 0;
-        }
-    }
-    return Result;
 }

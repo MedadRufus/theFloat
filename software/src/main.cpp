@@ -24,6 +24,7 @@
 #include "wspr_packet_formatting.hpp"
 #include "datatypes.hpp"
 #include "geofence.hpp"
+#include "Si5351.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -78,7 +79,6 @@ S_GadgetData GadgetData;   // Create a datastructure that holds all relevant dat
 S_FactoryData FactoryData; // Create a datastructure that holds information of the hardware
 E_Mode CurrentMode;        // What mode are we in, WSPR, signal generator or nothing
 
-
 uint8_t CurrentBand = 0;         // Keeps track on what band we are currently tranmitting on
 uint8_t CurrentLP = 0;           // Keep track on what Low Pass filter is currently switched in
 const uint8_t SerCMDLength = 50; // Max number of char on a command in the SerialAPI
@@ -105,13 +105,6 @@ void SendAPIUpdate(uint8_t UpdateType);
 void calcLocator(double lat, double lon);
 boolean CorrectTimeslot();
 
-// si5351 related
-void si5351aOutputOff(uint8_t clk);
-void si5351aSetFrequency(uint32_t frequency);
-void setupMultisynth(uint8_t synth, uint32_t Divider, uint8_t rDiv);
-void si5351aOutputOff(uint8_t clk);
-void si5351aSetFrequency(uint64_t frequency);
-
 void DoSerialHandling();
 void DecodeSerialCMD(const char *InputCMD);
 
@@ -129,7 +122,6 @@ void StorePosition();
 
 static void smartdelay(unsigned long delay_ms);
 
-void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom);
 
 unsigned long RandomSeed(void);
 boolean NoBandEnabled(void);
@@ -160,16 +152,11 @@ void GPSGoToSleep();
 void GPSWakeUp();
 void GPSReset();
 
-void Si5351PowerOff();
-void Si5351PowerOn();
-
 void SerialPrintZero();
 void SendSatData();
 uint8_t EncodeChar(char Character);
 
 boolean CorrectTimeslot();
-
-
 
 // Implementation of functions
 
@@ -1244,158 +1231,8 @@ static void smartdelay(unsigned long delay_ms)
         Serial.println(F("{MPS} 0")); // When pause is complete send Pause 0 to the GUI so it looks neater. But only if it was at least a four second delay
 }
 
-// I2C and PLL routines from Hans Summer demo code https://www.qrp-labs.com/images/uarduino/uard_demo.ino
-//
-// Set up specified PLL with mult, num and denom
-// mult is 15..90
-// num is 0..1,048,575 (0xFFFFF)
-// denom is 0..1,048,575 (0xFFFFF)
-//
-void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom)
-{
-    uint32_t P1; // PLL config register P1
-    uint32_t P2; // PLL config register P2
-    uint32_t P3; // PLL config register P3
 
-    P1 = (uint32_t)(128 * ((float)num / (float)denom));
-    P1 = (uint32_t)(128 * (uint32_t)(mult) + P1 - 512);
-    P2 = (uint32_t)(128 * ((float)num / (float)denom));
-    P2 = (uint32_t)(128 * num - denom * P2);
-    P3 = denom;
 
-    i2cSendRegister(pll + 0, (P3 & 0x0000FF00) >> 8);
-    i2cSendRegister(pll + 1, (P3 & 0x000000FF));
-    i2cSendRegister(pll + 2, (P1 & 0x00030000) >> 16);
-    i2cSendRegister(pll + 3, (P1 & 0x0000FF00) >> 8);
-    i2cSendRegister(pll + 4, (P1 & 0x000000FF));
-    i2cSendRegister(pll + 5, ((P3 & 0x000F0000) >> 12) | ((P2 &
-                                                           0x000F0000) >>
-                                                          16));
-    i2cSendRegister(pll + 6, (P2 & 0x0000FF00) >> 8);
-    i2cSendRegister(pll + 7, (P2 & 0x000000FF));
-}
-
-// I2C and PLL routines from Han Summer demo code https://www.qrp-labs.com/images/uarduino/uard_demo.ino
-//
-// Set up MultiSynth with integer Divider and R Divider
-// R Divider is the bit value which is OR'ed onto the appropriate
-// register, it is a #define in si5351a.h
-//
-void setupMultisynth(uint8_t synth, uint32_t Divider, uint8_t rDiv)
-{
-    uint32_t P1; // Synth config register P1
-    uint32_t P2; // Synth config register P2
-    uint32_t P3; // Synth config register P3
-
-    P1 = 128 * Divider - 512;
-    P2 = 0; // P2 = 0, P3 = 1 forces an integer value for the Divider
-    P3 = 1;
-
-    i2cSendRegister(synth + 0, (P3 & 0x0000FF00) >> 8);
-    i2cSendRegister(synth + 1, (P3 & 0x000000FF));
-    i2cSendRegister(synth + 2, ((P1 & 0x00030000) >> 16) | rDiv);
-    i2cSendRegister(synth + 3, (P1 & 0x0000FF00) >> 8);
-    i2cSendRegister(synth + 4, (P1 & 0x000000FF));
-    i2cSendRegister(synth + 5, ((P3 & 0x000F0000) >> 12) | ((P2 &
-                                                             0x000F0000) >>
-                                                            16));
-    i2cSendRegister(synth + 6, (P2 & 0x0000FF00) >> 8);
-    i2cSendRegister(synth + 7, (P2 & 0x000000FF));
-}
-
-// Switches off Si5351a output
-void si5351aOutputOff(uint8_t clk)
-{
-    i2cSendRegister(clk, 0x80); // Refer to SiLabs AN619 to see
-    // bit values - 0x80 turns off the output stage
-    digitalWrite(TransmitLED, LOW);
-    SendAPIUpdate(UMesTXOff);
-}
-
-// Set CLK0 output ON and to the specified frequency
-// Frequency is in the range 10kHz to 150MHz and given in centiHertz (hundreds of Hertz)
-// Example: si5351aSetFrequency(1000000200);
-// will set output CLK0 to 10.000,002MHz
-//
-// This example sets up PLL A
-// and MultiSynth 0
-// and produces the output on CLK0
-//
-void si5351aSetFrequency(uint64_t frequency) // Frequency is in centiHz
-{
-    static uint64_t oldFreq;
-    int32_t FreqChange;
-    uint64_t pllFreq;
-    // uint32_t xtalFreq = XTAL_FREQ;
-    uint32_t l;
-    float f;
-    uint8_t mult;
-    uint32_t num;
-    uint32_t denom;
-    uint32_t Divider;
-    uint8_t rDiv;
-
-    if (frequency > 100000000ULL)
-    { // If higher than 1MHz then set R output divider to 1
-        rDiv = SI_R_DIV_1;
-        Divider = 90000000000ULL / frequency;           // Calculate the division ratio. 900MHz is the maximum VCO freq (expressed as deciHz)
-        pllFreq = Divider * frequency;                  // Calculate the pllFrequency:
-        mult = pllFreq / (FactoryData.RefFreq * 100UL); // Determine the multiplier to
-        l = pllFreq % (FactoryData.RefFreq * 100UL);    // It has three parts:
-        f = l;                                          // mult is an integer that must be in the range 15..90
-        f *= 1048575;                                   // num and denom are the fractional parts, the numerator and denominator
-        f /= FactoryData.RefFreq;                       // each is 20 bits (range 0..1048575)
-        num = f;                                        // the actual multiplier is mult + num / denom
-        denom = 1048575;                                // For simplicity we set the denominator to the maximum 1048575
-        num = num / 100;
-    }
-    else // lower freq than 1MHz - use output Divider set to 128
-    {
-        rDiv = SI_R_DIV_128;
-        // frequency = frequency * 128ULL; //Set base freq 128 times higher as we are dividing with 128 in the last output stage
-        Divider = 90000000000ULL / (frequency * 128ULL); // Calculate the division ratio. 900MHz is the maximum VCO freq
-
-        pllFreq = Divider * frequency * 128ULL; // Calculate the pllFrequency:
-        // the Divider * desired output frequency
-        mult = pllFreq / (FactoryData.RefFreq * 100UL); // Determine the multiplier to
-        // get to the required pllFrequency
-        l = pllFreq % (FactoryData.RefFreq * 100UL); // It has three parts:
-        f = l;                                       // mult is an integer that must be in the range 15..90
-        f *= 1048575;                                // num and denom are the fractional parts, the numerator and denominator
-        f /= FactoryData.RefFreq;                    // each is 20 bits (range 0..1048575)
-        num = f;                                     // the actual multiplier is mult + num / denom
-        denom = 1048575;                             // For simplicity we set the denominator to the maximum 1048575
-        num = num / 100;
-    }
-
-    // Set up PLL A with the calculated  multiplication ratio
-    setupPLL(SI_SYNTH_PLL_A, mult, num, denom);
-
-    // Set up MultiSynth Divider 0, with the calculated Divider.
-    // The final R division stage can divide by a power of two, from 1..128.
-    // reprented by constants SI_R_DIV1 to SI_R_DIV128 (see si5351a.h header file)
-    // If you want to output frequencies below 1MHz, you have to use the
-    // final R division stage
-    setupMultisynth(SI_SYNTH_MS_0, Divider, rDiv);
-
-    // Reset the PLL. This causes a glitch in the output. For small changes to
-    // the parameters, you don't need to reset the PLL, and there is no glitch
-    FreqChange = frequency - oldFreq;
-
-    if (abs(FreqChange) > 100000) // If changed more than 1kHz then reset PLL (completely arbitrary choosen)
-    {
-        i2cSendRegister(SI_PLL_RESET, 0xA0);
-    }
-
-    // Finally switch on the CLK0 output (0x4F)
-    // and set the MultiSynth0 input to be PLL A
-    i2cSendRegister(SI_CLK0_CONTROL, 0x4F | SI_CLK_SRC_PLL_A);
-    oldFreq = frequency;
-    digitalWrite(TransmitLED, HIGH);
-    Serial.print(F("{TFQ} "));
-    Serial.println(uint64ToStr(frequency, false));
-    SendAPIUpdate(UMesTXOn);
-}
 
 // Create a random seed by doing CRC32 on 100 analog values from port A0
 // CRC calculation from Christopher Andrews : https://www.arduino.cc/en/Tutorial/EEPROMCrc
@@ -2078,28 +1915,6 @@ void GPSReset()
     GPSSerial.println(F("$PCAS10,3*1F"));
 }
 
-void Si5351PowerOff()
-{
-    if (Product_Model == 1017 || Product_Model == 1028) // If its the WSPR-TX Mini it has a control line that can cut power to the Si5351
-    {
-        // Power off the Si5351
-        digitalWrite(SiPower, HIGH);
-    }
-}
-
-void Si5351PowerOn()
-{
-    if (Product_Model == 1017) // If its the WSPR-TX Mini it has a control line that can cut power to the Si5351
-    {
-        // Power on the Si5351
-        digitalWrite(SiPower, LOW);
-        // Give it some time to stabilize voltage before init
-        delay(100);
-        // re-initialize the Si5351
-        i2cInit();
-        si5351aOutputOff(SI_CLK0_CONTROL);
-    }
-}
 /*
   //Sleep code from Kevin Darrah https://www.youtube.com/watch?v=urLSDi7SD8M
   void MCUGoToSleep( int SleepTime)//Sleep time in seconds, accurate to the nearest 8 seconds
