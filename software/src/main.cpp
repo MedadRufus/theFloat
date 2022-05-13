@@ -56,11 +56,6 @@ enum E_Band
 
 // declarations
 
-const uint8_t LP_A = 0;
-const uint8_t LP_B = 1;
-const uint8_t LP_C = 2;
-const uint8_t LP_D = 3;
-
 int StatusLED; // LED that indicates current status. Yellow on LP1, Desktop and Mini models, white on Pico
 // Global Variables
 S_GadgetData GadgetData;   // Create a datastructure that holds all relevant data for a WSPR Beacon

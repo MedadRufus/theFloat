@@ -80,3 +80,8 @@
 
 #define SoftwareVersion 1   // 0 to 255. 0=Beta
 #define SoftwareRevision 12 // 0 to 255
+
+#define LP_A 0
+#define LP_B 1
+#define LP_C 2
+#define LP_D 3
