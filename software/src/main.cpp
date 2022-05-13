@@ -16,7 +16,7 @@
 
 #include <Arduino.h>
 #include <SoftwareSerial.h>
-#include <NMEAGPS.h> //NeoGps by SlashDevin"
+#include <NMEAGPS.h>
 #include <defines.hpp>
 #include <i2c.hpp>
 #include "string_operations.hpp"
