@@ -83,7 +83,6 @@ uint8_t BandNumOfHigestLP();
 int GetVCC();
 void NextFreq(void);
 void PickLP(uint8_t TXBand);
-void calcLocator(double lat, double lon);
 boolean CorrectTimeslot();
 
 void DoSerialHandling();
@@ -96,7 +95,6 @@ void DoWSPR();
 // wspr related
 int SendWSPRMessage(uint8_t WSPRMessageType);
 
-void calcLocator(double lat, double lon);
 boolean NewPosition();
 void StorePosition();
 
@@ -271,7 +269,7 @@ void DoWSPR()
                         GPSS = fix.dateTime.seconds;
                         if (GadgetData.WSPRData.LocatorOption == GPS)
                         { // If GPS should update the Maidenhead locator
-                            calcLocator(fix.latitude(), fix.longitude());
+                            calcLocator(fix.latitude(), fix.longitude(), &GadgetData.WSPRData);
                         }
                         if ((GPSS == 00) && (CorrectTimeslot())) // If second is zero at even minute then start WSPR transmission. The function CorrectTimeSlot can hold of transmision depending on several user settings. The GadgetData.WSPRData.TimeSlotCode value will influense the behaviour
                         {
@@ -442,42 +440,6 @@ int SendWSPRMessage(uint8_t WSPRMessageType)
     digitalWrite(StatusLED, LOW);
 
     return errcode;
-}
-
-// Maidenhead code from Ossi Väänänen https://ham.stackexchange.com/questions/221/how-can-one-convert-from-lat-long-to-grid-square
-void calcLocator(double lat, double lon)
-{
-    int o1, o2, o3;
-    int a1, a2, a3;
-    double remainder;
-    // longitude
-    remainder = lon + 180.0;
-    o1 = (int)(remainder / 20.0);
-    remainder = remainder - (double)o1 * 20.0;
-    o2 = (int)(remainder / 2.0);
-    remainder = remainder - 2.0 * (double)o2;
-    o3 = (int)(12.0 * remainder);
-
-    // latitude
-    remainder = lat + 90.0;
-    a1 = (int)(remainder / 10.0);
-    remainder = remainder - (double)a1 * 10.0;
-    a2 = (int)(remainder);
-    remainder = remainder - (double)a2;
-    a3 = (int)(24.0 * remainder);
-    GadgetData.WSPRData.MaidenHead4[0] = (char)o1 + 'A';
-    GadgetData.WSPRData.MaidenHead4[1] = (char)a1 + 'A';
-    GadgetData.WSPRData.MaidenHead4[2] = (char)o2 + '0';
-    GadgetData.WSPRData.MaidenHead4[3] = (char)a2 + '0';
-    GadgetData.WSPRData.MaidenHead4[4] = 0;
-
-    GadgetData.WSPRData.MaidenHead6[0] = (char)o1 + 'A';
-    GadgetData.WSPRData.MaidenHead6[1] = (char)a1 + 'A';
-    GadgetData.WSPRData.MaidenHead6[2] = (char)o2 + '0';
-    GadgetData.WSPRData.MaidenHead6[3] = (char)a2 + '0';
-    GadgetData.WSPRData.MaidenHead6[4] = (char)o3 + 'A';
-    GadgetData.WSPRData.MaidenHead6[5] = (char)a3 + 'A';
-    GadgetData.WSPRData.MaidenHead6[6] = 0;
 }
 
 boolean NewPosition() // Returns true if the postion has changed since the last transmission
@@ -1580,7 +1542,7 @@ void loop()
                 SendAPIUpdate(UMesGPSLock);
                 if (GadgetData.WSPRData.LocatorOption == GPS)
                 { // If GPS should update the Maidenhead locator
-                    calcLocator(fix.latitude(), fix.longitude());
+                    calcLocator(fix.latitude(), fix.longitude(), &GadgetData.WSPRData);
                 }
                 SendAPIUpdate(UMesLocator);
             }

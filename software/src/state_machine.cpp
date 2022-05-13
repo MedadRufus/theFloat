@@ -340,7 +340,7 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                             GPSH = fix.dateTime.hours;
                             GPSM = fix.dateTime.minutes;
                             GPSS = fix.dateTime.seconds;
-                            calcLocator(fix.latitude(), fix.longitude());
+                            calcLocator(fix.latitude(), fix.longitude(), &GadgetData.WSPRData);
                             Serial.print(F("{DL4} "));
                             Serial.println(GadgetData.WSPRData.MaidenHead4);
                             Serial.print(F("{DL6} "));
