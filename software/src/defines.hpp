@@ -77,3 +77,6 @@
 // Product model. WSPR-TX Pico                            =1028
 // Product model. WSPR-TX_LP1 with Mezzanine BLP4 card    =1029
 #define Product_Model 1012
+
+#define SoftwareVersion 1;   // 0 to 255. 0=Beta
+#define SoftwareRevision 12; // 0 to 255

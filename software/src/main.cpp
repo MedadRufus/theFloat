@@ -30,9 +30,6 @@
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
 
-const uint8_t SoftwareVersion = 1;   // 0 to 255. 0=Beta
-const uint8_t SoftwareRevision = 12; // 0 to 255
-
 boolean Si5351I2C_found = false;
 
 // Data structures
@@ -423,17 +420,27 @@ int SendWSPRMessage(uint8_t WSPRMessageType)
                 Indicator = i;
                 Serial.print(F("{TWS} "));
                 if (CurrentBand < 10)
+                {
                     SerialPrintZero();
+                }
                 Serial.print(CurrentBand);
                 Serial.print(" ");
                 if (GadgetData.WSPRData.LocationPrecision == 6)
+                {
                     Indicator = Indicator / 2; // If four minutes TX time then halve the indicator value so it will be full after four minutes instead of 2 minutes
+                }
                 if (WSPRMessageType == 3)
+                {
                     Indicator = Indicator + 81; // If this is the second 2 minute transmission then start to from 50%
+                }
                 if (Indicator < 10)
+                {
                     SerialPrintZero();
+                }
                 if (Indicator < 100)
+                {
                     SerialPrintZero();
+                }
                 Serial.println(Indicator);
                 for (int BlinkCount = 0; BlinkCount < 6; BlinkCount++)
                 {
@@ -648,7 +655,9 @@ void NextFreq(void)
         }
         Serial.print("{TBN} "); // Send API update to inform what band we are using at the moment
         if (CurrentBand < 10)
+        {
             SerialPrintZero();
+        }
         Serial.println(CurrentBand);
         // We have found what band to use, now pick the right low pass filter for this band
         PickLP(CurrentBand);

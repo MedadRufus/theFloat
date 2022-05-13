@@ -54,15 +54,21 @@ void SendAPIUpdate(uint8_t UpdateType)
         GPSS = fix.dateTime.seconds;
         Serial.print(F("{GTM} "));
         if (GPSH < 10)
+        {
             SerialPrintZero();
+        }
         Serial.print(GPSH);
         Serial.print(":");
         if (GPSM < 10)
+        {
             SerialPrintZero();
+        }
         Serial.print(GPSM);
         Serial.print(":");
         if (GPSS < 10)
+        {
             SerialPrintZero();
+        }
         Serial.println(GPSS);
         break;
 
@@ -203,13 +209,21 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 {
                     Serial.print(F("{OTP} "));
                     if (GadgetData.TXPause < 10000)
+                    {
                         SerialPrintZero();
+                    }
                     if (GadgetData.TXPause < 1000)
+                    {
                         SerialPrintZero();
+                    }
                     if (GadgetData.TXPause < 100)
+                    {
                         SerialPrintZero();
+                    }
                     if (GadgetData.TXPause < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(GadgetData.TXPause);
                 }
             } // TX Pause
@@ -274,7 +288,9 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                     Serial.print(F("{OBD} "));
                     i = atoi(CharInt);
                     if (i < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.print(i);
                     if (GadgetData.TXOnBand[i])
                     {
@@ -394,7 +410,9 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 {
                     Serial.print(F("{OTS} "));
                     if (GadgetData.WSPRData.TimeSlotCode < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(GadgetData.WSPRData.TimeSlotCode);
                 }
             } // Time slot
@@ -474,9 +492,13 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 {
                     Serial.print(F("{DSF} "));
                     if (GadgetData.WSPRData.Sufix < 100)
+                    {
                         SerialPrintZero();
+                    }
                     if (GadgetData.WSPRData.Sufix < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(GadgetData.WSPRData.Sufix);
                 }
             } // Callsign Sufix
@@ -568,7 +590,9 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 {
                     Serial.print(F("{DPD} "));
                     if (GadgetData.WSPRData.TXPowerdBm < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(GadgetData.WSPRData.TXPowerdBm);
                 }
             } // Power Data
@@ -585,7 +609,9 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                     CharInt[12] = 0;
                     GadgetData.GeneratorFreq = StrTouint64_t(CharInt);
                     if (CurrentMode == SignalGen)
+                    {
                         DoSignalGen();
+                    }
                 }
                 else // Get
                 {
@@ -607,7 +633,9 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 { // Get option
                     Serial.print(F("{FPN} "));
                     if (Product_Model < 10000)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(Product_Model);
                 }
             } // Product model Number
@@ -627,9 +655,13 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 {
                     Serial.print(F("{FHV} "));
                     if (FactoryData.HW_Version < 100)
+                    {
                         SerialPrintZero();
+                    }
                     if (FactoryData.HW_Version < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(FactoryData.HW_Version);
                 }
             } // Hardware Version
@@ -650,9 +682,13 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 {
                     Serial.print(F("{FHR} "));
                     if (FactoryData.HW_Revision < 100)
+                    {
                         SerialPrintZero();
+                    }
                     if (FactoryData.HW_Revision < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(FactoryData.HW_Revision);
                 }
             } // Hardware Revision
@@ -664,9 +700,13 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 { // Get option
                     Serial.print(F("{FSV} "));
                     if (SoftwareVersion < 100)
+                    {
                         SerialPrintZero();
+                    }
                     if (SoftwareVersion < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(SoftwareVersion);
                 }
             } // Software Version
@@ -678,9 +718,13 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 { // Get option
                     Serial.print(F("{FSR} "));
                     if (SoftwareRevision < 100)
+                    {
                         SerialPrintZero();
+                    }
                     if (SoftwareRevision < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(SoftwareRevision);
                 }
             } // Software Revision
@@ -732,19 +776,27 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                     }
                     Serial.print(F("{FLP} A "));
                     if (FactoryData.LP_A_BandNum < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(FactoryData.LP_A_BandNum);
                     Serial.print(F("{FLP} B "));
                     if (FactoryData.LP_B_BandNum < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(FactoryData.LP_B_BandNum);
                     Serial.print(F("{FLP} C "));
                     if (FactoryData.LP_C_BandNum < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(FactoryData.LP_C_BandNum);
                     Serial.print(F("{FLP} D "));
                     if (FactoryData.LP_D_BandNum < 10)
+                    {
                         SerialPrintZero();
+                    }
                     Serial.println(FactoryData.LP_D_BandNum);
                 }
             } // Low pass filter config
