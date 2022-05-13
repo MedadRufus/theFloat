@@ -203,7 +203,7 @@ void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom)
     P2 = (uint32_t)(128 * num - denom * P2);
     P3 = denom;
 
-    i2cSendRegister(pll + 0, (P3 & 0x0000FF00) >> 8, i2cSendRegister);
+    i2cSendRegister(pll + 0, (P3 & 0x0000FF00) >> 8, Si5351I2CAddress);
     i2cSendRegister(pll + 1, (P3 & 0x000000FF), Si5351I2CAddress);
     i2cSendRegister(pll + 2, (P1 & 0x00030000) >> 16, Si5351I2CAddress);
     i2cSendRegister(pll + 3, (P1 & 0x0000FF00) >> 8, Si5351I2CAddress);
