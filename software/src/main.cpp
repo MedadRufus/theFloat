@@ -798,36 +798,65 @@ uint8_t FreqToBand()
     uint8_t BandReturn = 15;
 
     if (freq < (WSPR_FREQ70cm * 1.2))
+    {
         BandReturn = 14;
+    }
     if (freq < (WSPR_FREQ2m * 1.2))
+    {
         BandReturn = 13;
+    }
     if (freq < (WSPR_FREQ4m * 1.2))
+    {
         BandReturn = 12;
+    }
     if (freq < (WSPR_FREQ6m * 1.2))
+    {
         BandReturn = 11;
+    }
     if (freq < (WSPR_FREQ10m * 1.2))
+    {
         BandReturn = 10;
+    }
     if (freq < (WSPR_FREQ12m * 1.2))
+    {
         BandReturn = 9;
+    }
     if (freq < (WSPR_FREQ15m * 1.2))
+    {
         BandReturn = 8;
+    }
     if (freq < (WSPR_FREQ17m * 1.1))
+    {
         BandReturn = 7;
+    }
     if (freq < (WSPR_FREQ20m * 1.2))
+    {
         BandReturn = 6;
+    }
     if (freq < (WSPR_FREQ30m * 1.2))
+    {
         BandReturn = 5;
+    }
     if (freq < (WSPR_FREQ40m * 1.2))
+    {
         BandReturn = 4;
+    }
     if (freq < (WSPR_FREQ80m * 1.2))
+    {
         BandReturn = 3;
+    }
     if (freq < (WSPR_FREQ160m * 1.2))
+    {
         BandReturn = 2;
+    }
     if (freq < (WSPR_FREQ630m * 1.2))
+    {
         BandReturn = 1;
+    }
     if (freq < (WSPR_FREQ2190m * 1.2))
+    {
         BandReturn = 0;
-
+    }
     return BandReturn;
 }
 
