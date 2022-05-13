@@ -108,13 +108,21 @@ void SendAPIUpdate(uint8_t UpdateType)
     case UMesLPF:
         Serial.print(F("{LPI} "));
         if (CurrentLP == LP_A)
+        {
             Serial.println("A");
+        }
         if (CurrentLP == LP_B)
+        {
             Serial.println("B");
+        }
         if (CurrentLP == LP_C)
+        {
             Serial.println("C");
+        }
         if (CurrentLP == LP_D)
+        {
             Serial.println("D");
+        }
     }
 }
 
