@@ -54,16 +54,7 @@ enum E_Band
     UHF23cm = 15
 };
 
-struct S_FactoryData
-{
-    uint8_t HW_Version;   // Hardware version
-    uint8_t HW_Revision;  // Hardware revision
-    uint32_t RefFreq;     // The frequency of the Reference Oscillator in Hz, usually 26000000
-    uint8_t LP_A_BandNum; // Low Pass filter A Band number (0-15) Ham Band as defined by E_Band  Eg. if a 20m LowPass filter is fitted on LP_A then LP_A_BandNum will be set to 6 by factory config software
-    uint8_t LP_B_BandNum; // Low Pass filter B Band number (0-15)
-    uint8_t LP_C_BandNum; // Low Pass filter C Band number (0-15)
-    uint8_t LP_D_BandNum; // Low Pass filter D Band number (0-15)
-};
+
 
 // declarations
 

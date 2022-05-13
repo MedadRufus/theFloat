@@ -4,7 +4,9 @@
 #include "datatypes.hpp"
 #include "print_operations.hpp"
 
-extern E_Mode CurrentMode; // What mode are we in, WSPR, signal generator or nothing
+extern E_Mode CurrentMode;        // TODO: replace with getters and setters
+extern S_FactoryData FactoryData; // TODO: replace with getters and setters
+extern S_GadgetData GadgetData;   // TODO: replace with getters and setters
 
 void SendAPIUpdate(uint8_t UpdateType)
 {
