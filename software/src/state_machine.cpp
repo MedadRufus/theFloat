@@ -5,6 +5,8 @@
 #include "print_operations.hpp"
 #include "eeprom.hpp"
 #include <NMEAGPS.h>
+#include "filter_management.hpp"
+#include "wspr_packet_formatting.hpp"
 
 extern E_Mode CurrentMode;        // TODO: replace with getters and setters
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
