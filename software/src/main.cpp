@@ -122,7 +122,6 @@ void StorePosition();
 
 static void smartdelay(unsigned long delay_ms);
 
-
 unsigned long RandomSeed(void);
 boolean NoBandEnabled(void);
 void NextFreq(void);
@@ -886,7 +885,7 @@ void DoSignalGen()
         CurrentMode = SignalGen;
         freq = GadgetData.GeneratorFreq;
         PickLP(FreqToBand()); // Use the correct low pass filter
-        si5351aSetFrequency(freq);
+        si5351aSetFrequency(freq, FactoryData.RefFreq);
         digitalWrite(StatusLED, HIGH);
         SendAPIUpdate(UMesCurrentMode);
         SendAPIUpdate(UMesFreq);
@@ -1090,7 +1089,7 @@ int SendWSPRMessage(uint8_t WSPRMessageType)
         uint64_t tonefreq;
         tonefreq = freq + ((tx_buffer[i] * 146)); // 146 centiHz (Tone spacing is 1.4648Hz in WSPR)
         if (TXEnabled)
-            si5351aSetFrequency(tonefreq);
+            si5351aSetFrequency(tonefreq, FactoryData.RefFreq);
         // wait untill tone is transmitted for the correct amount of time
         while ((millis() < endmillis) && (!Serial.available()))
             ; // Until time is up or there is serial data received on the control Serial port
@@ -1230,9 +1229,6 @@ static void smartdelay(unsigned long delay_ms)
     if (delay_ms > 4000)
         Serial.println(F("{MPS} 0")); // When pause is complete send Pause 0 to the GUI so it looks neater. But only if it was at least a four second delay
 }
-
-
-
 
 // Create a random seed by doing CRC32 on 100 analog values from port A0
 // CRC calculation from Christopher Andrews : https://www.arduino.cc/en/Tutorial/EEPROMCrc

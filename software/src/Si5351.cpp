@@ -72,7 +72,7 @@ void si5351aOutputOff(uint8_t clk)
 // and MultiSynth 0
 // and produces the output on CLK0
 //
-void si5351aSetFrequency(uint64_t frequency) // Frequency is in centiHz
+void si5351aSetFrequency(uint64_t frequency, uint32_t RefFreq) // Frequency is in centiHz
 {
     static uint64_t oldFreq;
     int32_t FreqChange;
@@ -89,15 +89,15 @@ void si5351aSetFrequency(uint64_t frequency) // Frequency is in centiHz
     if (frequency > 100000000ULL)
     { // If higher than 1MHz then set R output divider to 1
         rDiv = SI_R_DIV_1;
-        Divider = 90000000000ULL / frequency;           // Calculate the division ratio. 900MHz is the maximum VCO freq (expressed as deciHz)
-        pllFreq = Divider * frequency;                  // Calculate the pllFrequency:
-        mult = pllFreq / (FactoryData.RefFreq * 100UL); // Determine the multiplier to
-        l = pllFreq % (FactoryData.RefFreq * 100UL);    // It has three parts:
-        f = l;                                          // mult is an integer that must be in the range 15..90
-        f *= 1048575;                                   // num and denom are the fractional parts, the numerator and denominator
-        f /= FactoryData.RefFreq;                       // each is 20 bits (range 0..1048575)
-        num = f;                                        // the actual multiplier is mult + num / denom
-        denom = 1048575;                                // For simplicity we set the denominator to the maximum 1048575
+        Divider = 90000000000ULL / frequency; // Calculate the division ratio. 900MHz is the maximum VCO freq (expressed as deciHz)
+        pllFreq = Divider * frequency;        // Calculate the pllFrequency:
+        mult = pllFreq / (RefFreq * 100UL);   // Determine the multiplier to
+        l = pllFreq % (RefFreq * 100UL);      // It has three parts:
+        f = l;                                // mult is an integer that must be in the range 15..90
+        f *= 1048575;                         // num and denom are the fractional parts, the numerator and denominator
+        f /= RefFreq;                         // each is 20 bits (range 0..1048575)
+        num = f;                              // the actual multiplier is mult + num / denom
+        denom = 1048575;                      // For simplicity we set the denominator to the maximum 1048575
         num = num / 100;
     }
     else // lower freq than 1MHz - use output Divider set to 128
@@ -108,14 +108,14 @@ void si5351aSetFrequency(uint64_t frequency) // Frequency is in centiHz
 
         pllFreq = Divider * frequency * 128ULL; // Calculate the pllFrequency:
         // the Divider * desired output frequency
-        mult = pllFreq / (FactoryData.RefFreq * 100UL); // Determine the multiplier to
+        mult = pllFreq / (RefFreq * 100UL); // Determine the multiplier to
         // get to the required pllFrequency
-        l = pllFreq % (FactoryData.RefFreq * 100UL); // It has three parts:
-        f = l;                                       // mult is an integer that must be in the range 15..90
-        f *= 1048575;                                // num and denom are the fractional parts, the numerator and denominator
-        f /= FactoryData.RefFreq;                    // each is 20 bits (range 0..1048575)
-        num = f;                                     // the actual multiplier is mult + num / denom
-        denom = 1048575;                             // For simplicity we set the denominator to the maximum 1048575
+        l = pllFreq % (RefFreq * 100UL); // It has three parts:
+        f = l;                           // mult is an integer that must be in the range 15..90
+        f *= 1048575;                    // num and denom are the fractional parts, the numerator and denominator
+        f /= RefFreq;                    // each is 20 bits (range 0..1048575)
+        num = f;                         // the actual multiplier is mult + num / denom
+        denom = 1048575;                 // For simplicity we set the denominator to the maximum 1048575
         num = num / 100;
     }
 
