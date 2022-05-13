@@ -26,6 +26,7 @@
 #include "Si5351.hpp"
 #include "state_machine.hpp"
 #include "print_operations.hpp"
+#include "eeprom.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -1162,11 +1163,6 @@ void GPSReset()
   }
 */
 
-void SerialPrintZero()
-{
-    Serial.print("0");
-}
-
 // Sends the Sattelite data like Elevation, Azimuth SNR and ID using the Serial API {GSI} format
 void SendSatData()
 {
@@ -1221,22 +1217,6 @@ void SendSatData()
   }// watchdog interrupt
 
 
-*/
-// Original WSPR code by NT7S - Jason Milldrum https://github.com/etherkit/JTEncode and Bo Hansen - OZ2M RFZero https://rfzero.net
-// Modifed for Type2 and Type3 messages by SM7PNV Harry Zachrisson https://github.com/HarrydeBug
-
-/*
-   wspr_encode(const char * call, const char * loc, const uint8_t dbm, uint8_t * symbols)
-
-   Takes an arbitrary message of up to 13 allowable characters and returns
-
-   call - Callsign (6 characters maximum).
-   loc - Maidenhead grid locator (4 charcters maximum).
-   dbm - Output power in dBm.
-   symbols - Array of channel symbols to transmit retunred by the method.
-   Ensure that you pass a uint8_t array of size WSPR_SYMBOL_COUNT to the method.
-
-*/
 
 // Only transmit on specific times
 boolean CorrectTimeslot()
