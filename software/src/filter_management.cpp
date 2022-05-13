@@ -2,7 +2,6 @@
 #include "defines.hpp"
 #include "state_machine.hpp"
 
-
 extern uint8_t CurrentLP;         // Keep track on what Low Pass filter is currently switched in
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
 
