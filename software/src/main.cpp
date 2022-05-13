@@ -1300,6 +1300,8 @@ void loop()
                     calcLocator(fix.latitude(), fix.longitude(), &GadgetData.WSPRData);
                 }
                 SendAPIUpdate(UMesLocator);
+                {
+                }
             }
             else
             {
