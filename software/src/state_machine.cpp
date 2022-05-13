@@ -7,6 +7,7 @@
 #include <NMEAGPS.h>
 #include "filter_management.hpp"
 #include "wspr_packet_formatting.hpp"
+#include "adc.hpp"
 
 extern E_Mode CurrentMode;        // TODO: replace with getters and setters
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
