@@ -23,6 +23,7 @@
 #include "string_operations.hpp"
 #include "wspr_packet_formatting.hpp"
 #include "datatypes.hpp"
+#include "geofence.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -77,8 +78,6 @@ S_GadgetData GadgetData;   // Create a datastructure that holds all relevant dat
 S_FactoryData FactoryData; // Create a datastructure that holds information of the hardware
 E_Mode CurrentMode;        // What mode are we in, WSPR, signal generator or nothing
 
-// GeoFence grids by Matt Downs - 2E1GYP and Harry Zachrisson - SM7PNV , save some RAM by putting the string in program memmory
-const char NoTXGrids[] PROGMEM = {"IO78 IO88 IO77 IO87 IO76 IO86 IO75 IO85 IO84 IO94 IO83 IO93 IO82 IO92 JO02 IO81 IO91 JO01 IO70 IO80 IO90 IO64 PN31 PN41 PN20 PN30 PN40 PM29 PM39 PM28 PM38 LK16 LK15 LK14 LK13 LK23 LK24 LK25 LK26 LK36 LK35 LK34 LK33 LK44 LK45 LK46 LK47 LK48 LK58 LK57 LK56 LK55"}; // Airborne transmissions of this sort are not legal over the UK, North Korea, or Yemen.
 
 uint8_t CurrentBand = 0;         // Keeps track on what band we are currently tranmitting on
 uint8_t CurrentLP = 0;           // Keep track on what Low Pass filter is currently switched in
@@ -170,8 +169,7 @@ uint8_t EncodeChar(char Character);
 
 boolean CorrectTimeslot();
 
-// geofence related
-boolean OutsideGeoFence();
+
 
 // Implementation of functions
 
@@ -2261,30 +2259,6 @@ void SendSatData()
    Ensure that you pass a uint8_t array of size WSPR_SYMBOL_COUNT to the method.
 
 */
-
-// GeoFence, do not transmit over Yemen, North Korea and the UK
-// GeoFence code by Matt Downs - 2E1GYP and Harry Zachrisson - SM7PNV
-// Defined by the NoTXGrids that holds all the Maidehead grids for these locations
-boolean OutsideGeoFence()
-{
-    char TestGrid[4];
-    boolean Outside;
-
-    Outside = true;
-    for (uint16_t GridLoop = 0; GridLoop < strlen_P(NoTXGrids); GridLoop = GridLoop + 5)
-    { // Itterate between Geo-Fenced grids
-        for (uint16_t CharLoop = 0; CharLoop < 4; CharLoop++)
-        {
-            TestGrid[CharLoop] = pgm_read_byte_near(NoTXGrids + CharLoop + GridLoop); // Copy a Grid string from program memory to RAM variable.
-        }
-        if ((GadgetData.WSPRData.MaidenHead4[0] == TestGrid[0]) && (GadgetData.WSPRData.MaidenHead4[1] == TestGrid[1]) && (GadgetData.WSPRData.MaidenHead4[2] == TestGrid[2]) && (GadgetData.WSPRData.MaidenHead4[3] == TestGrid[3]))
-        {
-            Outside = false; // We found a match between the current location and a Geo-Fenced Grid
-        }
-    }
-
-    return Outside;
-}
 
 // Only transmit on specific times
 boolean CorrectTimeslot()
