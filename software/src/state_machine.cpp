@@ -10,13 +10,13 @@ extern E_Mode CurrentMode;        // TODO: replace with getters and setters
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
 extern S_GadgetData GadgetData;   // TODO: replace with getters and setters
 
-extern int GPSH;              // GPS Hours
-extern int GPSM;              // GPS Minutes
-extern int GPSS;              // GPS Seconds
-extern int fixstate;          // GPS Fix state-machine. 0=Init, 1=wating for fix,2=fix accuired
-extern uint8_t CurrentLP = 0; // Keep track on what Low Pass filter is currently switched in
-extern uint64_t freq;         // Holds the Output frequency when we are in signal generator mode or in WSPR mode
-extern gps_fix fix;           // This holds on to the latest values
+extern int GPSH;          // GPS Hours
+extern int GPSM;          // GPS Minutes
+extern int GPSS;          // GPS Seconds
+extern int fixstate;      // GPS Fix state-machine. 0=Init, 1=wating for fix,2=fix accuired
+extern uint8_t CurrentLP; // Keep track on what Low Pass filter is currently switched in
+extern uint64_t freq;     // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern gps_fix fix;       // This holds on to the latest values
 
 void SendAPIUpdate(uint8_t UpdateType)
 {
