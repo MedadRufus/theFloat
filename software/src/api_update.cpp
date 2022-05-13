@@ -2,6 +2,9 @@
 #include "string_operations.hpp"
 #include "defines.hpp"
 #include "datatypes.hpp"
+#include "print_operations.hpp"
+
+extern E_Mode CurrentMode; // What mode are we in, WSPR, signal generator or nothing
 
 void SendAPIUpdate(uint8_t UpdateType)
 {

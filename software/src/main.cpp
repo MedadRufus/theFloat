@@ -26,6 +26,7 @@
 #include "geofence.hpp"
 #include "Si5351.hpp"
 #include "api_update.hpp"
+#include "print_operations.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -75,7 +76,7 @@ int StatusLED; // LED that indicates current status. Yellow on LP1, Desktop and 
 // Global Variables
 S_GadgetData GadgetData;   // Create a datastructure that holds all relevant data for a WSPR Beacon
 S_FactoryData FactoryData; // Create a datastructure that holds information of the hardware
-extern E_Mode CurrentMode; // What mode are we in, WSPR, signal generator or nothing
+E_Mode CurrentMode;        // What mode are we in, WSPR, signal generator or nothing
 
 uint8_t CurrentBand = 0;         // Keeps track on what band we are currently tranmitting on
 uint8_t CurrentLP = 0;           // Keep track on what Low Pass filter is currently switched in
@@ -144,7 +145,6 @@ void GPSGoToSleep();
 void GPSWakeUp();
 void GPSReset();
 
-void SerialPrintZero();
 void SendSatData();
 uint8_t EncodeChar(char Character);
 
