@@ -420,7 +420,9 @@ boolean NewPosition() // Returns true if the postion has changed since the last 
     for (int i = 0; i < GadgetData.WSPRData.LocationPrecision; i++) // Check if the position has changed, test it using either four or six letter Maidenhead precision based on user setting
     {
         if (GadgetData.WSPRData.MaidenHead6[i] != LastMaidenHead6[i])
+        {
             NewPos = true;
+        }
     }
     return NewPos;
 }
@@ -449,7 +451,9 @@ static void smartdelay(unsigned long delay_ms)
     do
     {
         while (gps.available(GPSSerial))
+        {
             fix = gps.read(); // If GPS data available - process it
+        }
         TimeLeft = EndTime - millis();
 
         if ((TimeLeft > 4000))
@@ -514,7 +518,9 @@ boolean LastFreq(void)
         {
             TestBand++;
             if (GadgetData.TXOnBand[TestBand])
+            {
                 Last = false;
+            }
         } while (TestBand < 12);
     }
     return Last;
