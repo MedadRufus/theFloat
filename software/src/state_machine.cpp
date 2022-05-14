@@ -161,7 +161,7 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 { // Set option
                     if (InputCMD[8] == 'S')
                     {
-                        DoSignalGen(); // UNDO LATER
+                        DoSignalGen();
                     }
                     if (InputCMD[8] == 'W')
                     {
@@ -170,7 +170,7 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                     }
                     if (InputCMD[8] == 'N')
                     {
-                        // DoIdle(); // UNDO LATER
+                        DoIdle();
                     }
                 }    // Set Current Mode
                 else // Get

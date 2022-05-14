@@ -5,6 +5,7 @@
 #include "state_machine.hpp"
 #include "wspr_utils.hpp"
 #include "filter_management.hpp"
+#include "power.hpp"
 
 extern boolean Si5351I2C_found;
 extern uint64_t freq;             // Holds the Output frequency when we are in signal generator mode or in WSPR mode
@@ -239,4 +240,13 @@ void DoSignalGen()
         SendAPIUpdate(UMesCurrentMode);
         SendAPIUpdate(UMesFreq);
     }
+}
+
+void DoIdle()
+{
+    PowerSaveOFF();
+    CurrentMode = Idle;
+    digitalWrite(StatusLED, LOW);
+    si5351aOutputOff(SI_CLK0_CONTROL);
+    SendAPIUpdate(UMesCurrentMode);
 }

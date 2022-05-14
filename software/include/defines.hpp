@@ -49,7 +49,6 @@
 #define Relay2 6
 #define Relay3 7
 #define TransmitLED 8 // Red LED next to RF out SMA that will turn on when Transmitting (Pico model do not have a TX LED)
-#define GPSPower A1   // Sleep-Wake signal of the GPS on the WSPR-TX Pico
 #define SiPower A3    // Power the Si5351 from this pin on the WSPR-TX Mini
 
 // Product model. WSPR-TX_LP1                             =1011

@@ -30,6 +30,8 @@
 #include "filter_management.hpp"
 #include "adc.hpp"
 #include "wspr_utils.hpp"
+#include "gps.hpp"
+#include "power.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -87,7 +89,6 @@ boolean CorrectTimeslot();
 void DoSerialHandling();
 
 // silabs related
-void DoIdle();
 void DoWSPR();
 
 // wspr related
@@ -104,13 +105,6 @@ boolean LastFreq(void);
 void LEDBlink(int Blinks);
 
 void DriveLPFilters();
-
-void PowerSaveOFF();
-void PowerSaveON();
-
-void GPSGoToSleep();
-void GPSWakeUp();
-void GPSReset();
 
 void SendSatData();
 uint8_t EncodeChar(char Character);
@@ -159,15 +153,6 @@ void DoSerialHandling()
 
         } // end of switch
     }     // end of processIncomingByte
-}
-
-void DoIdle()
-{
-    PowerSaveOFF();
-    CurrentMode = Idle;
-    digitalWrite(StatusLED, LOW);
-    si5351aOutputOff(SI_CLK0_CONTROL);
-    SendAPIUpdate(UMesCurrentMode);
 }
 
 void DoWSPR()
@@ -536,69 +521,6 @@ void LEDBlink(int Blinks)
         digitalWrite(StatusLED, LOW);
         smartdelay(50);
     }
-}
-
-void PowerSaveOFF()
-{
-    GPSWakeUp();
-    Si5351PowerOn();
-}
-
-void PowerSaveON()
-{
-    GPSGoToSleep();
-    Si5351PowerOff();
-}
-
-void GPSGoToSleep()
-{
-    switch (Product_Model)
-    {
-    case 1017: // Mini
-        // If its the WSPR-TX Mini, send the Sleep string to it
-        GPSSerial.println(F("$PMTK161,0*28"));
-        // GPSSleep = true;
-        break;
-
-    case 1028: // Pico
-        // If it is the WSPR-TX Pico it has a hardware line for sleep/wake
-        pinMode(GPSPower, OUTPUT);
-        digitalWrite(GPSPower, LOW);
-        break;
-    }
-}
-
-void GPSWakeUp()
-{
-    switch (Product_Model)
-    {
-    case 1017: // Mini
-        // Send anything on the GPS serial line to wake it up
-        GPSSerial.println(" ");
-        // GPSSleep = false;
-        delay(100); // Give the GPS some time to wake up and send its serial data back to us
-        break;
-
-    case 1028: // Pico
-        // If it is the WSPR-TX Pico it has a hardware line for sleep/wake
-        pinMode(GPSPower, OUTPUT);
-        digitalWrite(GPSPower, HIGH);
-        delay(200);
-        pinMode(GPSPower, INPUT);
-        delay(200);
-        // Send GPS reset string
-        // GPSSerial.println(F("$PCAS10,3*1F"));
-        // Airborne Mode
-        // GPSSerial.println(F("$PCAS11,5*18"));
-        break;
-    }
-}
-
-void GPSReset()
-{
-    GPSWakeUp();
-    // Send GPS reset string
-    GPSSerial.println(F("$PCAS10,3*1F"));
 }
 
 // Sends the Sattelite data like Elevation, Azimuth SNR and ID using the Serial API {GSI} format
