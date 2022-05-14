@@ -99,7 +99,6 @@ void StorePosition();
 static void smartdelay(unsigned long delay_ms);
 
 unsigned long RandomSeed(void);
-boolean isNoBandEnable(void);
 boolean LastFreq(void);
 
 void LEDBlink(int Blinks);
@@ -496,18 +495,6 @@ unsigned long RandomSeed(void)
         crc = ~crc;
     }
     return crc;
-}
-
-// Returns true if the user has not enabled any bands for TX
-boolean isNoBandEnable(void)
-{
-    boolean NoOne = true;
-    for (int FreqLoop = 0; FreqLoop < 13; FreqLoop++)
-    {
-        if (GadgetData.TXOnBand[FreqLoop])
-            NoOne = false;
-    }
-    return NoOne;
 }
 
 // Function returns True if the band we just transmitted on was the highest band the user want to transmit on.

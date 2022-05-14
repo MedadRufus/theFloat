@@ -1,4 +1,7 @@
 #include "wspr_utils.hpp"
+#include "print_operations.hpp"
+#include "datatypes.hpp"
+#include "filter_management.hpp"
 
 #define WSPR_FREQ23cm 129650150000ULL // 23cm 1296.501,500MHz (Overtone, not implemented)
 #define WSPR_FREQ70cm 43230150000ULL  // 70cm  432.301,500MHz (Overtone, not implemented)
@@ -17,7 +20,9 @@
 #define WSPR_FREQ630m 47570000ULL     // 630m      475.700kHz
 #define WSPR_FREQ2190m 13750000ULL    // 2190m     137.500kHz
 
-extern uint64_t freq; // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern uint64_t freq;           // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern S_GadgetData GadgetData; // TODO: replace with getters and setters
+extern uint8_t CurrentBand;     // Keeps track on what band we are currently tranmitting on
 
 // Convert a frequency to a Ham band. Frequency is stored in global variable freq
 uint8_t FreqToBand()
@@ -100,7 +105,9 @@ void NextFreq(void)
         {
             CurrentBand++;
             if (CurrentBand > 12)
+            {
                 CurrentBand = 0;
+            }
         } while (!GadgetData.TXOnBand[CurrentBand]);
 
         switch (CurrentBand)
@@ -153,4 +160,18 @@ void NextFreq(void)
         // We have found what band to use, now pick the right low pass filter for this band
         PickLP(CurrentBand);
     }
+}
+
+// Returns true if the user has not enabled any bands for TX
+boolean isNoBandEnable(void)
+{
+    boolean NoOne = true;
+    for (int FreqLoop = 0; FreqLoop < 13; FreqLoop++)
+    {
+        if (GadgetData.TXOnBand[FreqLoop])
+        {
+            NoOne = false;
+        }
+    }
+    return NoOne;
 }
