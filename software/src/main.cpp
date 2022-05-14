@@ -99,7 +99,7 @@ void StorePosition();
 static void smartdelay(unsigned long delay_ms);
 
 unsigned long RandomSeed(void);
-boolean NoBandEnabled(void);
+boolean isNoBandEnable(void);
 boolean LastFreq(void);
 
 void LEDBlink(int Blinks);
@@ -197,7 +197,7 @@ void DoWSPR()
         ConfigError = false;
 
         // Make sure at least one band is enabled for tranmission
-        if (NoBandEnabled())
+        if (isNoBandEnable())
         {
             Serial.println(F("{MIN}Tranmission is not enabled on any band"));
             ConfigError = true;
@@ -499,7 +499,7 @@ unsigned long RandomSeed(void)
 }
 
 // Returns true if the user has not enabled any bands for TX
-boolean NoBandEnabled(void)
+boolean isNoBandEnable(void)
 {
     boolean NoOne = true;
     for (int FreqLoop = 0; FreqLoop < 13; FreqLoop++)

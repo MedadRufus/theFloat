@@ -90,7 +90,7 @@ uint8_t FreqToBand()
 // Determine what band to transmit on, cycles upward in the TX enabled bands, e.g if band 2,5,6 and 11 is enbled for TX then the cycle will be 2-5-6-11-2-5-6-11-...
 void NextFreq(void)
 {
-    if (NoBandEnabled())
+    if (isNoBandEnable())
     {
         freq = 0;
     }
