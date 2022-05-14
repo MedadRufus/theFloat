@@ -2,9 +2,10 @@
 #include "defines.hpp"
 #include "state_machine.hpp"
 
-
 extern uint8_t CurrentLP;         // Keep track on what Low Pass filter is currently switched in
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
+
+uint8_t BandNumOfHigestLP();
 
 // Pulls the correct relays to choose LP filter A,B,C or D
 void DriveLPFilters()
@@ -114,4 +115,118 @@ void DriveLPFilters()
             }
         }
     }
+}
+
+// Out of the four possible LP filters fitted - find the one that is best for Transmission on TXBand
+void PickLP(uint8_t TXBand)
+{
+    boolean ExactMatch = false;
+    uint8_t BandLoop;
+
+    // Check if some of the four low pass filters is an exact match for the TXBand
+    if (FactoryData.LP_A_BandNum == TXBand)
+    {
+        ExactMatch = true;
+        CurrentLP = LP_A;
+    }
+    if (FactoryData.LP_B_BandNum == TXBand)
+    {
+        ExactMatch = true;
+        CurrentLP = LP_B;
+    }
+    if (FactoryData.LP_C_BandNum == TXBand)
+    {
+        ExactMatch = true;
+        CurrentLP = LP_C;
+    }
+    if (FactoryData.LP_D_BandNum == TXBand)
+    {
+        ExactMatch = true;
+        CurrentLP = LP_D;
+    }
+
+    // If we did not find a perfect match then use a low pass filter that is higher in frequency.
+    if (!ExactMatch)
+    {
+        for (BandLoop = TXBand; BandLoop < 99; BandLoop++) // Test all higher bands to find a a possible LP filter in one of the four LP banks
+        {
+            if (FactoryData.LP_A_BandNum == BandLoop) // The LP filter in Bank A is a match for this band
+            {
+                CurrentLP = LP_A;
+                break;
+            }
+            if (FactoryData.LP_B_BandNum == BandLoop) // The LP filter in Bank B is a match for this band
+            {
+                CurrentLP = LP_B;
+                break;
+            }
+            if (FactoryData.LP_C_BandNum == BandLoop) // The LP filter in Bank C is a match for this band
+            {
+                CurrentLP = LP_C;
+                break;
+            }
+            if (FactoryData.LP_D_BandNum == BandLoop) // The LP filter in Bank D is a match for this band
+            {
+                CurrentLP = LP_D;
+                break;
+            }
+        }
+        // If there is no LP that is higher than TXBand then use the highest one, (not ideal as output will be attenuated but best we can do)
+        if (BandLoop == 99)
+        {
+            TXBand = BandNumOfHigestLP();
+            if (FactoryData.LP_A_BandNum == TXBand)
+            {
+                CurrentLP = LP_A;
+            }
+            if (FactoryData.LP_B_BandNum == TXBand)
+            {
+                CurrentLP = LP_B;
+            }
+            if (FactoryData.LP_C_BandNum == TXBand)
+            {
+                CurrentLP = LP_C;
+            }
+            if (FactoryData.LP_D_BandNum == TXBand)
+            {
+                CurrentLP = LP_D;
+            }
+        }
+    }
+    DriveLPFilters();
+}
+
+// Returns a band that is the highest band that has a LP filter fitted onboard.
+// Low pass filter numbering corresponds to Bands or two special cases
+// The special cases are: 98=just a link between input and output, 99=Nothing fitted (open circut) the firmware will never use this
+// These numbers are set by the factory Configuration program and stored in EEPROM
+uint8_t BandNumOfHigestLP()
+{
+    uint8_t BandLoop, Result;
+    Result = FactoryData.LP_A_BandNum; // Use this filter if nothing else is a match.
+    // Find the highest band that has a Low Pass filter fitted in one of the four LP banks
+    for (BandLoop = 98; BandLoop > 0; BandLoop--)
+    {
+        if (FactoryData.LP_A_BandNum == BandLoop) // The LP filter in Bank A is a match for this band
+        {
+            Result = FactoryData.LP_A_BandNum;
+            break;
+        }
+        if (FactoryData.LP_B_BandNum == BandLoop) // The LP filter in Bank B is a match for this band
+        {
+            Result = FactoryData.LP_B_BandNum;
+            break;
+        }
+        if (FactoryData.LP_C_BandNum == BandLoop) // The LP filter in Bank C is a match for this band
+        {
+            Result = FactoryData.LP_C_BandNum;
+            break;
+        }
+        if (FactoryData.LP_D_BandNum == BandLoop) // The LP filter in Bank D is a match for this band
+        {
+            Result = FactoryData.LP_D_BandNum;
+            break;
+        }
+    }
+    return Result;
 }

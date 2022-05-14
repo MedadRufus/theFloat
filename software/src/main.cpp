@@ -29,6 +29,7 @@
 #include "eeprom.hpp"
 #include "filter_management.hpp"
 #include "adc.hpp"
+#include "wspr_utils.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -81,9 +82,6 @@ SoftwareSerial GPSSerial(2, 3); // GPS Serial port, RX on pin 2, TX on pin 3
 
 // function declarations
 
-uint8_t BandNumOfHigestLP();
-void NextFreq(void);
-void PickLP(uint8_t TXBand);
 boolean CorrectTimeslot();
 
 void DoSerialHandling();
@@ -102,16 +100,11 @@ static void smartdelay(unsigned long delay_ms);
 
 unsigned long RandomSeed(void);
 boolean NoBandEnabled(void);
-void NextFreq(void);
 boolean LastFreq(void);
 
 void LEDBlink(int Blinks);
 
 void DriveLPFilters();
-
-uint8_t FreqToBand();
-void PickLP(uint8_t TXBand);
-uint8_t BandNumOfHigestLP();
 
 void PowerSaveOFF();
 void PowerSaveON();
@@ -517,74 +510,6 @@ boolean NoBandEnabled(void)
     return NoOne;
 }
 
-// Determine what band to transmit on, cycles upward in the TX enabled bands, e.g if band 2,5,6 and 11 is enbled for TX then the cycle will be 2-5-6-11-2-5-6-11-...
-void NextFreq(void)
-{
-    if (NoBandEnabled())
-    {
-        freq = 0;
-    }
-    else
-    {
-        do
-        {
-            CurrentBand++;
-            if (CurrentBand > 12)
-                CurrentBand = 0;
-        } while (!GadgetData.TXOnBand[CurrentBand]);
-
-        switch (CurrentBand)
-        {
-        case 0:
-            freq = WSPR_FREQ2190m;
-            break;
-        case 1:
-            freq = WSPR_FREQ630m;
-            break;
-        case 2:
-            freq = WSPR_FREQ160m;
-            break;
-        case 3:
-            freq = WSPR_FREQ80m;
-            break;
-        case 4:
-            freq = WSPR_FREQ40m;
-            break;
-        case 5:
-            freq = WSPR_FREQ30m;
-            break;
-        case 6:
-            freq = WSPR_FREQ20m;
-            break;
-        case 7:
-            freq = WSPR_FREQ17m;
-            break;
-        case 8:
-            freq = WSPR_FREQ15m;
-            break;
-        case 9:
-            freq = WSPR_FREQ12m;
-            break;
-        case 10:
-            freq = WSPR_FREQ10m;
-            break;
-        case 11:
-            freq = WSPR_FREQ6m;
-            break;
-        case 12:
-            freq = WSPR_FREQ4m;
-        }
-        Serial.print("{TBN} "); // Send API update to inform what band we are using at the moment
-        if (CurrentBand < 10)
-        {
-            SerialPrintZero();
-        }
-        Serial.println(CurrentBand);
-        // We have found what band to use, now pick the right low pass filter for this band
-        PickLP(CurrentBand);
-    }
-}
-
 // Function returns True if the band we just transmitted on was the highest band the user want to transmit on.
 boolean LastFreq(void)
 {
@@ -618,188 +543,6 @@ void LEDBlink(int Blinks)
         digitalWrite(StatusLED, LOW);
         smartdelay(50);
     }
-}
-
-// Convert a frequency to a Ham band. Frequency is stored in global variable freq
-uint8_t FreqToBand()
-{
-    uint8_t BandReturn = 15;
-
-    if (freq < (WSPR_FREQ70cm * 1.2))
-    {
-        BandReturn = 14;
-    }
-    if (freq < (WSPR_FREQ2m * 1.2))
-    {
-        BandReturn = 13;
-    }
-    if (freq < (WSPR_FREQ4m * 1.2))
-    {
-        BandReturn = 12;
-    }
-    if (freq < (WSPR_FREQ6m * 1.2))
-    {
-        BandReturn = 11;
-    }
-    if (freq < (WSPR_FREQ10m * 1.2))
-    {
-        BandReturn = 10;
-    }
-    if (freq < (WSPR_FREQ12m * 1.2))
-    {
-        BandReturn = 9;
-    }
-    if (freq < (WSPR_FREQ15m * 1.2))
-    {
-        BandReturn = 8;
-    }
-    if (freq < (WSPR_FREQ17m * 1.1))
-    {
-        BandReturn = 7;
-    }
-    if (freq < (WSPR_FREQ20m * 1.2))
-    {
-        BandReturn = 6;
-    }
-    if (freq < (WSPR_FREQ30m * 1.2))
-    {
-        BandReturn = 5;
-    }
-    if (freq < (WSPR_FREQ40m * 1.2))
-    {
-        BandReturn = 4;
-    }
-    if (freq < (WSPR_FREQ80m * 1.2))
-    {
-        BandReturn = 3;
-    }
-    if (freq < (WSPR_FREQ160m * 1.2))
-    {
-        BandReturn = 2;
-    }
-    if (freq < (WSPR_FREQ630m * 1.2))
-    {
-        BandReturn = 1;
-    }
-    if (freq < (WSPR_FREQ2190m * 1.2))
-    {
-        BandReturn = 0;
-    }
-    return BandReturn;
-}
-
-// Out of the four possible LP filters fitted - find the one that is best for Transmission on TXBand
-void PickLP(uint8_t TXBand)
-{
-    boolean ExactMatch = false;
-    uint8_t BandLoop;
-
-    // Check if some of the four low pass filters is an exact match for the TXBand
-    if (FactoryData.LP_A_BandNum == TXBand)
-    {
-        ExactMatch = true;
-        CurrentLP = LP_A;
-    }
-    if (FactoryData.LP_B_BandNum == TXBand)
-    {
-        ExactMatch = true;
-        CurrentLP = LP_B;
-    }
-    if (FactoryData.LP_C_BandNum == TXBand)
-    {
-        ExactMatch = true;
-        CurrentLP = LP_C;
-    }
-    if (FactoryData.LP_D_BandNum == TXBand)
-    {
-        ExactMatch = true;
-        CurrentLP = LP_D;
-    }
-
-    // If we did not find a perfect match then use a low pass filter that is higher in frequency.
-    if (!ExactMatch)
-    {
-        for (BandLoop = TXBand; BandLoop < 99; BandLoop++) // Test all higher bands to find a a possible LP filter in one of the four LP banks
-        {
-            if (FactoryData.LP_A_BandNum == BandLoop) // The LP filter in Bank A is a match for this band
-            {
-                CurrentLP = LP_A;
-                break;
-            }
-            if (FactoryData.LP_B_BandNum == BandLoop) // The LP filter in Bank B is a match for this band
-            {
-                CurrentLP = LP_B;
-                break;
-            }
-            if (FactoryData.LP_C_BandNum == BandLoop) // The LP filter in Bank C is a match for this band
-            {
-                CurrentLP = LP_C;
-                break;
-            }
-            if (FactoryData.LP_D_BandNum == BandLoop) // The LP filter in Bank D is a match for this band
-            {
-                CurrentLP = LP_D;
-                break;
-            }
-        }
-        // If there is no LP that is higher than TXBand then use the highest one, (not ideal as output will be attenuated but best we can do)
-        if (BandLoop == 99)
-        {
-            TXBand = BandNumOfHigestLP();
-            if (FactoryData.LP_A_BandNum == TXBand)
-            {
-                CurrentLP = LP_A;
-            }
-            if (FactoryData.LP_B_BandNum == TXBand)
-            {
-                CurrentLP = LP_B;
-            }
-            if (FactoryData.LP_C_BandNum == TXBand)
-            {
-                CurrentLP = LP_C;
-            }
-            if (FactoryData.LP_D_BandNum == TXBand)
-            {
-                CurrentLP = LP_D;
-            }
-        }
-    }
-    DriveLPFilters();
-}
-
-// Returns a band that is the highest band that has a LP filter fitted onboard.
-// Low pass filter numbering corresponds to Bands or two special cases
-// The special cases are: 98=just a link between input and output, 99=Nothing fitted (open circut) the firmware will never use this
-// These numbers are set by the factory Configuration program and stored in EEPROM
-uint8_t BandNumOfHigestLP()
-{
-    uint8_t BandLoop, Result;
-    Result = FactoryData.LP_A_BandNum; // Use this filter if nothing else is a match.
-    // Find the highest band that has a Low Pass filter fitted in one of the four LP banks
-    for (BandLoop = 98; BandLoop > 0; BandLoop--)
-    {
-        if (FactoryData.LP_A_BandNum == BandLoop) // The LP filter in Bank A is a match for this band
-        {
-            Result = FactoryData.LP_A_BandNum;
-            break;
-        }
-        if (FactoryData.LP_B_BandNum == BandLoop) // The LP filter in Bank B is a match for this band
-        {
-            Result = FactoryData.LP_B_BandNum;
-            break;
-        }
-        if (FactoryData.LP_C_BandNum == BandLoop) // The LP filter in Bank C is a match for this band
-        {
-            Result = FactoryData.LP_C_BandNum;
-            break;
-        }
-        if (FactoryData.LP_D_BandNum == BandLoop) // The LP filter in Bank D is a match for this band
-        {
-            Result = FactoryData.LP_D_BandNum;
-            break;
-        }
-    }
-    return Result;
 }
 
 void PowerSaveOFF()

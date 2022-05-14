@@ -3,9 +3,15 @@
 #include "i2c.hpp"
 #include "string_operations.hpp"
 #include "state_machine.hpp"
+#include "wspr_utils.hpp"
+#include "filter_management.hpp"
 
 extern boolean Si5351I2C_found;
-extern uint64_t freq; // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern uint64_t freq;             // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern int StatusLED;             // LED that indicates current status. Yellow on LP1, Desktop and Mini models, white on Pico
+extern E_Mode CurrentMode;        // TODO: replace with getters and setters
+extern S_FactoryData FactoryData; // TODO: replace with getters and setters
+extern S_GadgetData GadgetData;   // TODO: replace with getters and setters
 
 uint8_t Si5351I2CAddress; // The I2C address on the Si5351 as detected on startup
 
