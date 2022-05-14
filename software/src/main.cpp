@@ -32,6 +32,7 @@
 #include "wspr_utils.hpp"
 #include "gps.hpp"
 #include "power.hpp"
+#include "led.hpp"
 
 NMEAGPS gps; // This parses the GPS characters
 gps_fix fix; // This holds on to the latest values
@@ -88,21 +89,14 @@ boolean CorrectTimeslot();
 
 void DoSerialHandling();
 
-// silabs related
-void DoWSPR();
-
 // wspr related
 int SendWSPRMessage(uint8_t WSPRMessageType);
 
 boolean NewPosition();
 void StorePosition();
 
-static void smartdelay(unsigned long delay_ms);
-
 unsigned long RandomSeed(void);
 boolean LastFreq(void);
-
-void LEDBlink(int Blinks);
 
 void DriveLPFilters();
 
@@ -153,168 +147,6 @@ void DoSerialHandling()
 
         } // end of switch
     }     // end of processIncomingByte
-}
-
-void DoWSPR()
-{
-    uint8_t pwr1, pwr2; // Used in Altitude to power reporting (balloon coding)
-    uint32_t AltitudeInMeter;
-    boolean ConfigError;
-    // uint32_t GPSNoReceiveCount; //If GPS stops working in WSPR Beacon mode this will increment
-    int WSPRMessageTypeToUse;
-
-    if (GadgetData.WSPRData.SuPreFixOption == None) // if standard Call Sign with no Sufix then send a Standards Type 1 message, else Send a Type 2 Message to include the Sufix
-    {
-        WSPRMessageTypeToUse = 1;
-    }
-    else
-    {
-        WSPRMessageTypeToUse = 2;
-    }
-    if (Si5351I2C_found == false)
-    {
-        Serial.println(F("{MIN}Hardware ERROR! No Si5351 PLL device found on the I2C buss!"));
-    }
-    else
-    {
-        CurrentMode = WSPRBeacon;
-        ConfigError = false;
-
-        // Make sure at least one band is enabled for tranmission
-        if (isNoBandEnable())
-        {
-            Serial.println(F("{MIN}Tranmission is not enabled on any band"));
-            ConfigError = true;
-        }
-
-        // Make sure  call sign is set
-        if ((GadgetData.WSPRData.CallSign[0] == 'A') && (GadgetData.WSPRData.CallSign[1] == 'A') && (GadgetData.WSPRData.CallSign[2] == '0') && (GadgetData.WSPRData.CallSign[3] == 'A') && (GadgetData.WSPRData.CallSign[4] == 'A') && (GadgetData.WSPRData.CallSign[5] == 'A')) // Do not actually key the transmitter if the callsign has not been changed from the default one AA0AAA
-        {
-            Serial.println(F("{MIN}Call Sign not set"));
-            ConfigError = true;
-        }
-
-        if (ConfigError)
-        {
-            Serial.println(F("{MIN}Can not start WSPR Beacon"));
-            DoIdle(); // Go back to ideling
-        }
-        else
-        {
-            CurrentBand = 0;
-            NextFreq();                                 // Cycle to next enabled band to transmit on
-            freq = freq + (100ULL * random(-100, 100)); // modify TX frequency with a random value beween -100 and +100 Hz
-            si5351aOutputOff(SI_CLK0_CONTROL);
-            SendAPIUpdate(UMesCurrentMode);
-
-            // LOOP HERE FOREVER OR UNTIL INTERRUPTED BY A SERIAL COMMAND
-            while (!Serial.available())
-            { // Do until incoming serial command
-                while (gps.available(GPSSerial))
-                { // If GPS data is available - process it
-                    LoopGPSNoReceiveCount = 0;
-                    fix = gps.read();
-                    SendAPIUpdate(UMesTime);
-                    if (Serial.available())
-                    { // If serialdata was received on control port then handle command
-                        return;
-                    }
-                    if (fix.valid.location && fix.valid.time)
-                    {
-                        GPSH = fix.dateTime.hours;
-                        GPSM = fix.dateTime.minutes;
-                        GPSS = fix.dateTime.seconds;
-                        if (GadgetData.WSPRData.LocatorOption == GPS)
-                        { // If GPS should update the Maidenhead locator
-                            calcLocator(fix.latitude(), fix.longitude(), &GadgetData.WSPRData);
-                        }
-                        if ((GPSS == 00) && (CorrectTimeslot())) // If second is zero at even minute then start WSPR transmission. The function CorrectTimeSlot can hold of transmision depending on several user settings. The GadgetData.WSPRData.TimeSlotCode value will influense the behaviour
-                        {
-                            if ((PCConnected) || (Product_Model != 1028) || ((Product_Model == 1028) && OutsideGeoFence())) // On the WSPR-TX Pico make sure were are outside the territory of UK, Yemen and North Korea before the transmitter is started but allow tranmissions inside the Geo-Fence if a PC is connected so UK users can make test tranmissions on the ground before relase of Picos
-                            {
-                                GPSGoToSleep(); // Put GPS to sleep to save power
-                                // -------------------- Altitude coding to Power ------------------------------------
-                                if (GadgetData.WSPRData.PowerOption == Altitude) // If Power field should be used for Altitude coding
-                                {
-                                    AltitudeInMeter = (uint32_t)fix.altitude();
-                                    pwr1 = ValiddBmValue(AltitudeInMeter / 300);                 // Max 18km altitude, every dBm count as 300m and max dBm that can be reported is 60
-                                    pwr2 = ValiddBmValue((AltitudeInMeter - (pwr1 * 300)) / 20); // Finer calculations for the second power transmission (if any - depends on user setting) every dBm in this report is 20m. The two reports will be added on the receive side
-                                    GadgetData.WSPRData.TXPowerdBm = pwr1;
-                                }
-
-                                if (SendWSPRMessage(WSPRMessageTypeToUse) != 0) // Send a WSPR Type 1 or Type 2 message for 1 minute and 50 seconds
-                                {
-                                    // there was a serial command that interrupted the WSPR Block so go and handle it
-                                    return;
-                                }
-                                if (GadgetData.WSPRData.LocationPrecision == 6) // If higher position precision is set then start a new WSPR tranmission of Type 3
-                                {
-                                    delay(9000);                                     // wait 9 seconds so we are at the top of an even minute again
-                                    if (GadgetData.WSPRData.PowerOption == Altitude) // If Power field should be used for Altitude coding
-                                    {
-                                        GadgetData.WSPRData.TXPowerdBm = pwr2;
-                                    }
-                                    if (SendWSPRMessage(3) != 0) // Send a WSPR Type 3 message for 1 minute and 50 seconds
-                                    {
-                                        // there was a serial command that interrupted the WSPR Block so go and handle it
-                                        return;
-                                    }
-                                }
-                                StorePosition(); // Save the current position;
-                                if (LastFreq())  // If all bands have been transmitted on then pause for user defined time and after that start over on the first band again
-                                {
-                                    if ((GadgetData.TXPause > 60) && ((Product_Model == 1017) || (Product_Model == 1028)) && (!PCConnected)) // If the PC is not connected and the TXdelay is longer than a 60 sec then put the MCU to sleep to save current during this long pause (Mini and Pico models only)
-                                    {
-                                        delay(600);       // Let the serial port send data from its buffer before we go to sleep
-                                        Si5351PowerOff(); // Turn off the PLL to save power (Mini Only)
-                                        // MCUGoToSleep (GadgetData.TXPause - 10);        //Set MCU in sleep mode until there is 10 seconds left of delay
-                                        PowerSaveOFF();   // We are back from sleep - turn on GPS and PLL again
-                                        smartdelay(2000); // let the smartdelay routine read a few GPS lines so we can get the new GPS time after our sleep
-                                    }
-                                    else
-                                    {                                            // Regular pause if we did not go to sleep then do a regular pause and send updates to the GUI for the duration
-                                        smartdelay(GadgetData.TXPause * 1000UL); // Pause for the time set by the user
-                                    }
-                                    SendAPIUpdate(UMesWSPRBandCycleComplete); // Inform PC that we have transmitted on the last enabled WSPR band and will start over
-                                }
-                                GPSWakeUp();
-                                NextFreq();                                 // get the frequency for the next HAM band that we will transmit on
-                                freq = freq + (100ULL * random(-100, 100)); // modify the TX frequency with a random value beween -100 and +100 Hz to avoid possible lengthy colisions with other users on the band
-                                smartdelay(3000);
-                            }
-                        }
-                        else // We have GPS fix but it is not top of even minute so dubble-blink to indicate waiting for top of minute
-                        {
-                            // SendAPIUpdate(UMesTime);
-                            if (GPSS < 57) // Send some nice-to-have info only if the WSPR start is at least 3 seconds away. The last 3 seconds we want to do as little as possible so we can time the start of transmission exactly on the mark
-                            {
-                                SendAPIUpdate(UMesGPSLock); // Send Locked status
-                                SendAPIUpdate(UMesLocator); // Send position
-                                SendSatData();              // Send Satellite postion and SNR information to the PC GUI
-                            }
-                            LEDBlink(2);
-                            smartdelay(100);
-                        }
-                    }
-                    else
-                    {                                 // Waiting for GPS location fix
-                        SendSatData();                // Send Satellite postion and SNR information to the PC GUI while we wait for the GPS location fix
-                        LEDBlink(1);                  // singleblink to indicate waiting for GPS Lock
-                        SendAPIUpdate(UMesNoGPSLock); // Send No lock status
-                        smartdelay(400);
-                    }
-                } // GPS serial data loop
-                LoopGPSNoReceiveCount++;
-                if (LoopGPSNoReceiveCount > 60000) // GPS have not sent anything for a long time, GPS is possible in sleep mode or has not started up correctly. This can happen if a brown-out/reboot happens while the GPS was sleeping
-                {
-                    LoopGPSNoReceiveCount = 0;
-                    Serial.println(F("{MIN} Resetting GPS"));
-                    GPSReset(); // Try to get GPS going again
-                    smartdelay(2000);
-                }
-            } // Incoming serial command
-        }
-    }
 }
 
 // Transmitt a WSPR message for 1 minute 50 seconds on frequency freq
@@ -420,48 +252,6 @@ void StorePosition() // Saves the current position
     }
 }
 
-// Part of the code from the TinyGPS example but here used for the NeoGPS
-// Delay loop that checks if the GPS serial port is sending data and in that case passes it of to the GPS object
-static void smartdelay(unsigned long delay_ms)
-{
-    boolean Blink;
-    int BlinkCount = 0;
-
-    Blink = (delay_ms > 10000); // If longer than 10 seconds of delay then Blink StatusLED once in a while
-    // This custom version of delay() ensures that the gps object
-    // is being "fed".
-    long TimeLeft;
-    unsigned long EndTime = delay_ms + millis();
-
-    do
-    {
-        while (gps.available(GPSSerial))
-        {
-            fix = gps.read(); // If GPS data available - process it
-        }
-        TimeLeft = EndTime - millis();
-
-        if ((TimeLeft > 4000))
-        {
-            // Send API update
-            Serial.print(F("{MPS} "));
-            Serial.println(TimeLeft / 1000);
-            delay(1000);
-            if (Blink)
-            {
-                BlinkCount++;
-                if (BlinkCount > 4) // Blink every 5 seconds
-                {
-                    LEDBlink(1);
-                    BlinkCount = 0;
-                }
-            }
-        }
-    } while ((TimeLeft > 0) && (!Serial.available())); // Until time is up or there is serial data received from the computer, in that case end early
-    if (delay_ms > 4000)
-        Serial.println(F("{MPS} 0")); // When pause is complete send Pause 0 to the GUI so it looks neater. But only if it was at least a four second delay
-}
-
 // Create a random seed by doing CRC32 on 100 analog values from port A0
 // CRC calculation from Christopher Andrews : https://www.arduino.cc/en/Tutorial/EEPROMCrc
 unsigned long RandomSeed(void)
@@ -509,18 +299,6 @@ boolean LastFreq(void)
         } while (TestBand < 12);
     }
     return Last;
-}
-
-// Brief flash on the Status LED 'Blinks'" number of time
-void LEDBlink(int Blinks)
-{
-    for (int i = 0; i < Blinks; i++)
-    {
-        digitalWrite(StatusLED, HIGH);
-        smartdelay(50);
-        digitalWrite(StatusLED, LOW);
-        smartdelay(50);
-    }
 }
 
 // Sends the Sattelite data like Elevation, Azimuth SNR and ID using the Serial API {GSI} format
@@ -945,7 +723,7 @@ void loop()
                 SendAPIUpdate(UMesNoGPSLock);
             }
         }
-        smartdelay(200);
+        gps_blocking_wait(200);
     }
     LoopGPSNoReceiveCount++;
     if (LoopGPSNoReceiveCount > 60000) // GPS have not sent anything for a long time, GPS is possible in sleep mode or has not started up correctly. This can happen if a brown-out/reboot happens while the GPS was sleeping
@@ -953,6 +731,6 @@ void loop()
         LoopGPSNoReceiveCount = 0;
         Serial.println(F("{MIN} Resetting GPS"));
         GPSWakeUp(); // Try to get GPS going again by sending wake up command
-        smartdelay(2000);
+        gps_blocking_wait(2000);
     }
 }
