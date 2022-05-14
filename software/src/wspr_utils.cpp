@@ -11,6 +11,7 @@
 #include <SoftwareSerial.h>
 #include "state_machine.hpp"
 #include "geofence.hpp"
+#include "led.hpp"
 
 #define WSPR_FREQ23cm 129650150000ULL // 23cm 1296.501,500MHz (Overtone, not implemented)
 #define WSPR_FREQ70cm 43230150000ULL  // 70cm  432.301,500MHz (Overtone, not implemented)
@@ -29,19 +30,26 @@
 #define WSPR_FREQ630m 47570000ULL     // 630m      475.700kHz
 #define WSPR_FREQ2190m 13750000ULL    // 2190m     137.500kHz
 
-extern uint64_t freq;           // Holds the Output frequency when we are in signal generator mode or in WSPR mode
-extern S_GadgetData GadgetData; // TODO: replace with getters and setters
-extern uint8_t CurrentBand;     // Keeps track on what band we are currently tranmitting on
+extern uint64_t freq;             // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern S_GadgetData GadgetData;   // TODO: replace with getters and setters
+extern S_FactoryData FactoryData; // Create a datastructure that holds information of the hardware
+extern uint8_t CurrentBand;       // Keeps track on what band we are currently tranmitting on
 extern boolean Si5351I2C_found;
 extern NMEAGPS gps;                    // This parses the GPS characters
 extern SoftwareSerial GPSSerial;       // GPS Serial port, RX on pin 2, TX on pin 3
 extern E_Mode CurrentMode;             // TODO: replace with getters and setters
 extern uint16_t LoopGPSNoReceiveCount; // If GPS stops working while in ídle mode this will increment
 extern boolean PCConnected;
-extern gps_fix fix; // This holds on to the latest values
-extern int GPSH;    // GPS Hours
-extern int GPSM;    // GPS Minutes
-extern int GPSS;    // GPS Seconds
+extern gps_fix fix;             // This holds on to the latest values
+extern int GPSH;                // GPS Hours
+extern int GPSM;                // GPS Minutes
+extern int GPSS;                // GPS Seconds
+extern int StatusLED;           // LED that indicates current status. Yellow on LP1, Desktop and Mini models, white on Pico
+extern char LastMaidenHead6[7]; // Holds the Maidenhead position from last transmission, used when GadgetData.WSPRData.TimeSlotCode=17 to determine if the transmitter has moved since last TX
+
+boolean getCorrectTimeslot();
+boolean getLastFreq(void);
+boolean NewPosition();
 
 // Convert a frequency to a Ham band. Frequency is stored in global variable freq
 uint8_t FreqToBand()
@@ -268,7 +276,7 @@ void DoWSPR()
                         { // If GPS should update the Maidenhead locator
                             calcLocator(fix.latitude(), fix.longitude(), &GadgetData.WSPRData);
                         }
-                        if ((GPSS == 00) && (CorrectTimeslot())) // If second is zero at even minute then start WSPR transmission. The function CorrectTimeSlot can hold of transmision depending on several user settings. The GadgetData.WSPRData.TimeSlotCode value will influense the behaviour
+                        if ((GPSS == 00) && (getCorrectTimeslot())) // If second is zero at even minute then start WSPR transmission. The function CorrectTimeSlot can hold of transmision depending on several user settings. The GadgetData.WSPRData.TimeSlotCode value will influense the behaviour
                         {
                             if ((PCConnected) || (Product_Model != 1028) || ((Product_Model == 1028) && OutsideGeoFence())) // On the WSPR-TX Pico make sure were are outside the territory of UK, Yemen and North Korea before the transmitter is started but allow tranmissions inside the Geo-Fence if a PC is connected so UK users can make test tranmissions on the ground before relase of Picos
                             {
@@ -300,8 +308,8 @@ void DoWSPR()
                                         return;
                                     }
                                 }
-                                StorePosition(); // Save the current position;
-                                if (LastFreq())  // If all bands have been transmitted on then pause for user defined time and after that start over on the first band again
+                                StorePosition();   // Save the current position;
+                                if (getLastFreq()) // If all bands have been transmitted on then pause for user defined time and after that start over on the first band again
                                 {
                                     if ((GadgetData.TXPause > 60) && ((Product_Model == 1017) || (Product_Model == 1028)) && (!PCConnected)) // If the PC is not connected and the TXdelay is longer than a 60 sec then put the MCU to sleep to save current during this long pause (Mini and Pico models only)
                                     {
@@ -355,4 +363,256 @@ void DoWSPR()
             } // Incoming serial command
         }
     }
+}
+
+void StorePosition() // Saves the current position
+{
+    for (int i = 0; i < 7; i++)
+    {
+        LastMaidenHead6[i] = GadgetData.WSPRData.MaidenHead6[i];
+    }
+}
+
+// Transmitt a WSPR message for 1 minute 50 seconds on frequency freq
+int SendWSPRMessage(uint8_t WSPRMessageType)
+{
+    uint8_t i;
+    uint8_t Indicator;
+    unsigned long startmillis;
+    unsigned long endmillis;
+    boolean TXEnabled = true;
+    int errcode;
+    errcode = 0;
+    boolean blinked;
+
+    uint8_t *tx_buffer = get_tx_buffer_ptr();
+    memset(tx_buffer, 0, get_tx_buffer_size());                                                                                                         // clear WSPR symbol buffer
+    wspr_encode(GadgetData.WSPRData.CallSign, GadgetData.WSPRData.MaidenHead4, GadgetData.WSPRData.TXPowerdBm, tx_buffer, WSPRMessageType, GadgetData); // Send a WSPR message for 2 minutes
+    // PrintBuffer ('B');
+    //  Send WSPR for two minutes
+    digitalWrite(StatusLED, HIGH);
+    startmillis = millis();
+    for (i = 0; i < 162; i++) // 162 WSPR symbols to transmit
+    {
+        blinked = false;
+        endmillis = startmillis + ((i + 1) * (unsigned long)683); // intersymbol delay in WSPR is 682.687 milliseconds (1.4648 baud)
+        uint64_t tonefreq;
+        tonefreq = freq + ((tx_buffer[i] * 146)); // 146 centiHz (Tone spacing is 1.4648Hz in WSPR)
+        if (TXEnabled)
+            si5351aSetFrequency(tonefreq, FactoryData.RefFreq);
+        // wait untill tone is transmitted for the correct amount of time
+        while ((millis() < endmillis) && (!Serial.available()))
+            ; // Until time is up or there is serial data received on the control Serial port
+        {
+            if (!blinked)
+            { // do pulsing blinks on Status LED every WSPR symbol to indicate WSPR Beacon transmission
+                // Send Status updates to the PC
+                Indicator = i;
+                Serial.print(F("{TWS} "));
+                if (CurrentBand < 10)
+                {
+                    SerialPrintZero();
+                }
+                Serial.print(CurrentBand);
+                Serial.print(" ");
+                if (GadgetData.WSPRData.LocationPrecision == 6)
+                {
+                    Indicator = Indicator / 2; // If four minutes TX time then halve the indicator value so it will be full after four minutes instead of 2 minutes
+                }
+                if (WSPRMessageType == 3)
+                {
+                    Indicator = Indicator + 81; // If this is the second 2 minute transmission then start to from 50%
+                }
+                if (Indicator < 10)
+                {
+                    SerialPrintZero();
+                }
+                if (Indicator < 100)
+                {
+                    SerialPrintZero();
+                }
+                Serial.println(Indicator);
+                for (int BlinkCount = 0; BlinkCount < 6; BlinkCount++)
+                {
+                    digitalWrite(StatusLED, HIGH);
+                    delay(5);
+                    digitalWrite(StatusLED, LOW);
+                    delay(50);
+                }
+                blinked = true;
+            }
+        }
+        if (Serial.available()) // If serialdata was received on Control port then abort and handle command
+        {
+            errcode = 1;
+            break;
+        }
+    }
+    // Switches off Si5351a output
+    si5351aOutputOff(SI_CLK0_CONTROL);
+    digitalWrite(StatusLED, LOW);
+
+    return errcode;
+}
+
+// Only transmit on specific times
+boolean getCorrectTimeslot()
+{
+    boolean CorrectSlot = false;
+    uint8_t TestMinute;
+    uint8_t ScheduleLenght;
+    uint8_t SlotCode;
+    TestMinute = GPSM;         // Test the Minute variable from the GPS time
+    if ((TestMinute % 2) == 0) // First check that it an even minute as WSPR transmissions only start on even minute
+    {
+        if (GadgetData.WSPRData.TimeSlotCode == 17) // Tracker mode, only transmit when the transmitter is moving
+        {
+            CorrectSlot = (NewPosition() || (TestMinute == 0)); // Transmit only if the tracker has moved since last transmisson or at top of an Hour
+        }
+        else if (GadgetData.WSPRData.TimeSlotCode == 16) // No scheduling
+        {
+            CorrectSlot = true;
+        }
+        else if (GadgetData.WSPRData.TimeSlotCode == 15) // Band coordinated scheduling
+        {
+            switch (CurrentBand)
+            {
+            case 2: // 160m band
+                CorrectSlot = (TestMinute == 0 || TestMinute == 20 || TestMinute == 40);
+                break;
+            case 3: // 80m band
+                CorrectSlot = (TestMinute == 2 || TestMinute == 22 || TestMinute == 42);
+                break;
+            case 4: // 40m band
+                CorrectSlot = (TestMinute == 6 || TestMinute == 26 || TestMinute == 46);
+                break;
+            case 5: // 30m band
+                CorrectSlot = (TestMinute == 8 || TestMinute == 28 || TestMinute == 48);
+                break;
+            case 6: // 20m band
+                CorrectSlot = (TestMinute == 10 || TestMinute == 30 || TestMinute == 50);
+                break;
+            case 7: // 17m band
+                CorrectSlot = (TestMinute == 12 || TestMinute == 32 || TestMinute == 52);
+                break;
+            case 8: // 15m band
+                CorrectSlot = (TestMinute == 14 || TestMinute == 34 || TestMinute == 54);
+                break;
+            case 9: // 12m band
+                CorrectSlot = (TestMinute == 16 || TestMinute == 36 || TestMinute == 56);
+                break;
+            case 10: // 10m band
+                CorrectSlot = (TestMinute == 18 || TestMinute == 38 || TestMinute == 58);
+                break;
+            default:
+                CorrectSlot = true; // band does not have schedule, allow it to transmit right now, this applies to 1290m,630m and all bands above 10m
+                break;
+            }                                           // switch
+        }                                               // else if
+        else if (GadgetData.WSPRData.TimeSlotCode < 15) // Schedule is on the minute set on Timeslotcode * 2  E.g if Timeslotcode is 3 then minute 06,16,26,36,46 and 56 is used for transmissions.
+        {
+            if (GadgetData.WSPRData.TimeSlotCode < 5)
+            {
+                ScheduleLenght = 10;
+                SlotCode = GadgetData.WSPRData.TimeSlotCode;
+            }
+            else
+            {
+                ScheduleLenght = 20;
+                SlotCode = GadgetData.WSPRData.TimeSlotCode - 5;
+            }  // if TimeSlotCode <5
+            do // Remove the ten minute digit and just leave the minute digit
+            {
+                if (TestMinute > ScheduleLenght - 1)
+                    TestMinute = TestMinute - ScheduleLenght;
+            } while (TestMinute > ScheduleLenght - 1);
+            CorrectSlot = (TestMinute == (SlotCode * 2)); // if the TimeSlotcode multiplied with 2 (only even minutes) is matching the current minute digit then transmit
+        }                                                 // else if
+    }
+    return CorrectSlot;
+}
+
+// Function returns True if the band we just transmitted on was the highest band the user want to transmit on.
+boolean getLastFreq(void)
+{
+    boolean Last = true;
+    int TestBand;
+
+    TestBand = CurrentBand;
+    if (TestBand == 12)
+    {
+        Last = true;
+    }
+    else
+    {
+        do
+        {
+            TestBand++;
+            if (GadgetData.TXOnBand[TestBand])
+            {
+                Last = false;
+            }
+        } while (TestBand < 12);
+    }
+    return Last;
+}
+
+// Sends the Sattelite data like Elevation, Azimuth SNR and ID using the Serial API {GSI} format
+void SendSatData()
+{
+    uint8_t SNR;
+    for (uint8_t i = 0; i < gps.sat_count; i++)
+    {
+        Serial.print(F("{GSI} "));
+        if (gps.satellites[i].id < 10)
+        {
+            SerialPrintZero();
+        }
+        Serial.print(gps.satellites[i].id);
+        Serial.print(" ");
+        if (gps.satellites[i].azimuth < 100)
+        {
+            SerialPrintZero();
+        }
+        if (gps.satellites[i].azimuth < 10)
+        {
+            SerialPrintZero();
+        }
+        Serial.print(gps.satellites[i].azimuth);
+        Serial.print(" ");
+        if (gps.satellites[i].elevation < 10)
+        {
+            SerialPrintZero();
+        }
+        Serial.print(gps.satellites[i].elevation);
+        Serial.print((" "));
+        SNR = 0;
+        if (gps.satellites[i].tracked)
+        {
+            SNR = gps.satellites[i].snr;
+        }
+        else
+        {
+            SNR = 0;
+        }
+        if (SNR < 10)
+        {
+            SerialPrintZero();
+        }
+        Serial.println(SNR);
+    }
+    Serial.println();
+}
+
+boolean NewPosition() // Returns true if the postion has changed since the last transmission
+{
+    boolean NewPos = false;
+    for (int i = 0; i < GadgetData.WSPRData.LocationPrecision; i++) // Check if the position has changed, test it using either four or six letter Maidenhead precision based on user setting
+    {
+        if (GadgetData.WSPRData.MaidenHead6[i] != LastMaidenHead6[i])
+        {
+            NewPos = true;
+        }
+    }
+    return NewPos;
 }
