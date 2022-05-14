@@ -8,6 +8,7 @@
 #include "filter_management.hpp"
 #include "wspr_packet_formatting.hpp"
 #include "adc.hpp"
+#include "Si5351.hpp"
 
 extern E_Mode CurrentMode;        // TODO: replace with getters and setters
 extern S_FactoryData FactoryData; // TODO: replace with getters and setters
@@ -160,7 +161,7 @@ void DecodeSerialCMD(const char *InputCMD, S_GadgetData GadgetData)
                 { // Set option
                     if (InputCMD[8] == 'S')
                     {
-                        // DoSignalGen(); // UNDO LATER
+                        DoSignalGen(); // UNDO LATER
                     }
                     if (InputCMD[8] == 'W')
                     {

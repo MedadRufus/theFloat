@@ -4,6 +4,9 @@
 #include "string_operations.hpp"
 #include "state_machine.hpp"
 
+extern boolean Si5351I2C_found;
+extern uint64_t freq; // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+
 uint8_t Si5351I2CAddress; // The I2C address on the Si5351 as detected on startup
 
 void Si5351PowerOff()
@@ -212,4 +215,22 @@ void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom)
     i2cSendRegister(pll + 5, ((P3 & 0x000F0000) >> 12) | ((P2 & 0x000F0000) >> 16), Si5351I2CAddress);
     i2cSendRegister(pll + 6, (P2 & 0x0000FF00) >> 8, Si5351I2CAddress);
     i2cSendRegister(pll + 7, (P2 & 0x000000FF), Si5351I2CAddress);
+}
+
+void DoSignalGen()
+{
+    if (Si5351I2C_found == false)
+    {
+        Serial.println(F("{MIN}Hardware ERROR! No Si5351 PLL device found on the I2C buss!"));
+    }
+    else
+    {
+        CurrentMode = SignalGen;
+        freq = GadgetData.GeneratorFreq;
+        PickLP(FreqToBand()); // Use the correct low pass filter
+        si5351aSetFrequency(freq, FactoryData.RefFreq);
+        digitalWrite(StatusLED, HIGH);
+        SendAPIUpdate(UMesCurrentMode);
+        SendAPIUpdate(UMesFreq);
+    }
 }

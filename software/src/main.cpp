@@ -89,7 +89,6 @@ boolean CorrectTimeslot();
 void DoSerialHandling();
 
 // silabs related
-void DoSignalGen();
 void DoIdle();
 void DoWSPR();
 
@@ -168,24 +167,6 @@ void DoSerialHandling()
 
         } // end of switch
     }     // end of processIncomingByte
-}
-
-void DoSignalGen()
-{
-    if (Si5351I2C_found == false)
-    {
-        Serial.println(F("{MIN}Hardware ERROR! No Si5351 PLL device found on the I2C buss!"));
-    }
-    else
-    {
-        CurrentMode = SignalGen;
-        freq = GadgetData.GeneratorFreq;
-        PickLP(FreqToBand()); // Use the correct low pass filter
-        si5351aSetFrequency(freq, FactoryData.RefFreq);
-        digitalWrite(StatusLED, HIGH);
-        SendAPIUpdate(UMesCurrentMode);
-        SendAPIUpdate(UMesFreq);
-    }
 }
 
 void DoIdle()
