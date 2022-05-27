@@ -3,6 +3,16 @@
 #include "i2c.hpp"
 #include "string_operations.hpp"
 #include "state_machine.hpp"
+#include "wspr_utils.hpp"
+#include "filter_management.hpp"
+#include "power.hpp"
+
+extern boolean Si5351I2C_found;
+extern uint64_t freq;             // Holds the Output frequency when we are in signal generator mode or in WSPR mode
+extern int StatusLED;             // LED that indicates current status. Yellow on LP1, Desktop and Mini models, white on Pico
+extern E_Mode CurrentMode;        // TODO: replace with getters and setters
+extern S_FactoryData FactoryData; // TODO: replace with getters and setters
+extern S_GadgetData GadgetData;   // TODO: replace with getters and setters
 
 uint8_t Si5351I2CAddress; // The I2C address on the Si5351 as detected on startup
 
@@ -212,4 +222,31 @@ void setupPLL(uint8_t pll, uint8_t mult, uint32_t num, uint32_t denom)
     i2cSendRegister(pll + 5, ((P3 & 0x000F0000) >> 12) | ((P2 & 0x000F0000) >> 16), Si5351I2CAddress);
     i2cSendRegister(pll + 6, (P2 & 0x0000FF00) >> 8, Si5351I2CAddress);
     i2cSendRegister(pll + 7, (P2 & 0x000000FF), Si5351I2CAddress);
+}
+
+void DoSignalGen()
+{
+    if (Si5351I2C_found == false)
+    {
+        Serial.println(F("{MIN}Hardware ERROR! No Si5351 PLL device found on the I2C buss!"));
+    }
+    else
+    {
+        CurrentMode = SignalGen;
+        freq = GadgetData.GeneratorFreq;
+        PickLP(FreqToBand()); // Use the correct low pass filter
+        si5351aSetFrequency(freq, FactoryData.RefFreq);
+        digitalWrite(StatusLED, HIGH);
+        SendAPIUpdate(UMesCurrentMode);
+        SendAPIUpdate(UMesFreq);
+    }
+}
+
+void DoIdle()
+{
+    PowerSaveOFF();
+    CurrentMode = Idle;
+    digitalWrite(StatusLED, LOW);
+    si5351aOutputOff(SI_CLK0_CONTROL);
+    SendAPIUpdate(UMesCurrentMode);
 }
