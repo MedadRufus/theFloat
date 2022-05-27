@@ -1,0 +1,16 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/mirrors-yapf
+    rev: "v0.27.0"
+    hooks:
+      - id: yapf # python formatter
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: "v14.0.3"
+    hooks:
+      - id: clang-format
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.10
+    hooks:
+      - id: cmake-format
+      - id: cmake-lint
